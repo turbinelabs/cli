@@ -98,7 +98,7 @@ func (cli *CLI) mainOrCmdErr() command.CmdErr {
 
 	if len(args) < 1 {
 		// <app> -help
-		if (cli.helpFlag) {
+		if cli.helpFlag {
 			cli.globalUsage()
 			return command.NoError()
 		}
@@ -119,7 +119,7 @@ func (cli *CLI) mainOrCmdErr() command.CmdErr {
 			addHelpFlag(&cmd.Flags, &cmdHelpFlag)
 		}
 		// <app> -help <command>
-		if (cli.helpFlag) {
+		if cli.helpFlag {
 			cli.commandUsage(cmd)
 			return command.NoError()
 		}
@@ -139,7 +139,7 @@ func (cli *CLI) mainOrCmdErr() command.CmdErr {
 	}
 
 	// <app> -help <unknown command>
-	if (cli.helpFlag) {
+	if cli.helpFlag {
 		cli.globalUsage()
 		return command.NoError()
 	}
@@ -153,7 +153,7 @@ func (cli *CLI) mainOrCmdErr() command.CmdErr {
 	badCmdFlags.Parse(args[1:])
 
 	// <app> <unknown command> -help
-	if (cmdHelpFlag) {
+	if cmdHelpFlag {
 		cli.globalUsage()
 		return command.NoError()
 	}
