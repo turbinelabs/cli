@@ -12,11 +12,14 @@ import (
 func testFlags() *flag.FlagSet {
 	var flags flag.FlagSet
 	flags.Bool("foo", false, "do the foo")
-	flags.Bool("bar", false, "harty har to the bar")
+	flags.Int("bar", 3, "the `quantity` of bars you want")
+	flags.Float64("blegga", 0.1, "on the spectrum of `fondue`, where do you fall?")
+	flags.String("baz", "", "do you want baz with that?")
 	return &flags
 }
 
-var testApp = App{"foo", "maybe foo, maybe bar", "1.0"}
+var subCmdApp = App{"foo", "maybe foo, maybe bar", "1.0", true}
+var singleCmdApp = App{"bar", "maybe bar, maybe baz", "1.1", false}
 
 func TestUsageGlobal(t *testing.T) {
 	cmds := []*command.Cmd{
@@ -26,7 +29,7 @@ func TestUsageGlobal(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	usage := newUsage(testApp, buf)
+	usage := newUsage(subCmdApp, buf)
 	usage.Global(cmds, testFlags())
 
 	assert.Equal(t, buf.String(), `NAME:
@@ -44,8 +47,10 @@ COMMANDS:
 	baz			baz the thing
 
 GLOBAL OPTIONS:
-	--bar=false	harty har to the bar
-	--foo=false	do the foo
+	--bar=quantity	(default: 3)		the quantity of bars you want
+	--baz=string	(default: "")		do you want baz with that?
+	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
+	--foo		(default: false)	do the foo
 
 Global options can also be configured via upper-case environment variables prefixed with "FOO"
 For example, "--some_flag" --> "FOO_SOME_FLAG"
@@ -64,7 +69,7 @@ func TestUsageCommand(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	usage := newUsage(testApp, buf)
+	usage := newUsage(subCmdApp, buf)
 	usage.Command(cmd)
 
 	assert.Equal(t, buf.String(), `NAME:
@@ -73,13 +78,41 @@ func TestUsageCommand(t *testing.T) {
 USAGE:
 	foo foo [FOO]
 
+VERSION:
+	1.0
+
 DESCRIPTION:
 	more deeply foo the thing
 
 OPTIONS:
-	--bar=false	harty har to the bar
-	--foo=false	do the foo
+	--bar=quantity	(default: 3)		the quantity of bars you want
+	--baz=string	(default: "")		do you want baz with that?
+	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
+	--foo		(default: false)	do the foo
 
 For help on global options run "foo help"
+`)
+
+	buf = new(bytes.Buffer)
+	usage = newUsage(singleCmdApp, buf)
+	usage.Command(cmd)
+
+	assert.Equal(t, buf.String(), `NAME:
+	bar - foo the thing
+
+USAGE:
+	bar [FOO]
+
+VERSION:
+	1.1
+
+DESCRIPTION:
+	more deeply foo the thing
+
+OPTIONS:
+	--bar=quantity	(default: 3)		the quantity of bars you want
+	--baz=string	(default: "")		do you want baz with that?
+	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
+	--foo		(default: false)	do the foo
 `)
 }
