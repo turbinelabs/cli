@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 	"text/template"
+	"unicode"
 
 	"github.com/turbinelabs/tbn/cli/command"
 	"github.com/turbinelabs/tbn/cli/flags"
@@ -73,6 +74,10 @@ For help on global options run "{{.Executable}} help"
 {{end}}`
 )
 
+func notGraphic(r rune) bool {
+	return !unicode.IsGraphic(r)
+}
+
 func newUsage(a App, wr io.Writer) Usage {
 	tabWriter := new(tabwriter.Writer)
 	tabWriter.Init(wr, 0, 8, 1, '\t', 0)
@@ -97,8 +102,8 @@ func newUsage(a App, wr io.Writer) Usage {
 				eq = ""
 			}
 			defValue := f.DefValue
-			if typeName == "string" {
-				defValue = fmt.Sprintf(`"%s"`, f.DefValue)
+			if typeName == "string" || strings.IndexFunc(defValue, notGraphic) != -1 {
+				defValue = fmt.Sprintf("%q", f.DefValue)
 			}
 			//--things=int (default: 5)
 			return fmt.Sprintf("\n\t%s%s%s%s\t(default: %s)\t%s", prefix, f.Name, eq, typeName, defValue, usage)

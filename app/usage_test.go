@@ -15,6 +15,7 @@ func testFlags() *flag.FlagSet {
 	flags.Int("bar", 3, "the `quantity` of bars you want")
 	flags.Float64("blegga", 0.1, "on the spectrum of `fondue`, where do you fall?")
 	flags.String("baz", "", "do you want baz with that?")
+	flags.String("qux", "\t\n", "rhymes with `ducks`")
 	return &flags
 }
 
@@ -51,6 +52,7 @@ GLOBAL OPTIONS:
 	--baz=string	(default: "")		do you want baz with that?
 	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
 	--foo		(default: false)	do the foo
+	--qux=ducks	(default: "\t\n")	rhymes with ducks
 
 Global options can also be configured via upper-case environment variables prefixed with "FOO"
 For example, "--some_flag" --> "FOO_SOME_FLAG"
@@ -89,6 +91,7 @@ OPTIONS:
 	--baz=string	(default: "")		do you want baz with that?
 	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
 	--foo		(default: false)	do the foo
+	--qux=ducks	(default: "\t\n")	rhymes with ducks
 
 For help on global options run "foo help"
 `)
@@ -114,5 +117,6 @@ OPTIONS:
 	--baz=string	(default: "")		do you want baz with that?
 	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
 	--foo		(default: false)	do the foo
+	--qux=ducks	(default: "\t\n")	rhymes with ducks
 `)
 }
