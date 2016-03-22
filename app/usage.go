@@ -48,8 +48,8 @@ COMMANDS:{{range .Commands}}
 
 GLOBAL OPTIONS:{{range .Flags}}{{printOption .}}{{end}}
 
-Global options can also be configured via upper-case environment variables prefixed with "{{.EXECUTABLE}}"
-For example, "--some_flag" --> "{{.EXECUTABLE}}_SOME_FLAG"
+Global options can also be configured via upper-case environment variables prefixed with "{{.EnvPrefix}}"
+For example, "--some_flag" --> "{{.EnvPrefix}}SOME_FLAG"
 
 Run "{{.Executable}} help <command>" for more details on a specific command.
 `
@@ -69,6 +69,9 @@ DESCRIPTION:
 {{range $line := descToLines .Cmd.Description}}{{printf "\t%s" $line}}
 {{end}}
 {{if .CmdFlags}}OPTIONS:{{range .CmdFlags}}{{printOption .}}{{end}}{{end}}
+
+Options can also be configured via upper-case environment variables prefixed with "{{.EnvPrefix}}"
+For example, "--some_flag" --> "{{.EnvPrefix}}SOME_FLAG"
 {{if .HasSubCmds}}
 For help on global options run "{{.Executable}} help"
 {{end}}`
@@ -122,14 +125,14 @@ func newUsage(a App, wr io.Writer) Usage {
 func (u usageT) Global(cmds []*command.Cmd, fs *flag.FlagSet) {
 	u.globalUsageTemplate.Execute(u.tabWriter, struct {
 		Executable  string
-		EXECUTABLE  string
+		EnvPrefix   string
 		Commands    []*command.Cmd
 		Flags       []*flag.Flag
 		Description string
 		Version     string
 	}{
 		u.app.Name,
-		strings.ToUpper(strings.Replace(u.app.Name, "-", "_", -1)),
+		flags.EnvKey(u.app.Name, ""),
 		cmds,
 		flags.Enumerate(fs),
 		u.app.Description,
@@ -141,12 +144,14 @@ func (u usageT) Global(cmds []*command.Cmd, fs *flag.FlagSet) {
 func (u usageT) Command(cmd *command.Cmd) {
 	u.commandUsageTemplate.Execute(u.tabWriter, struct {
 		Executable string
+		EnvPrefix  string
 		HasSubCmds bool
 		Cmd        *command.Cmd
 		CmdFlags   []*flag.Flag
 		Version    string
 	}{
 		u.app.Name,
+		flags.EnvKey(u.app.Name, ""),
 		u.app.HasSubCmds,
 		cmd,
 		flags.Enumerate(&cmd.Flags),

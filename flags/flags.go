@@ -3,9 +3,13 @@ package flags
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"regexp"
 	"strings"
 )
+
+var notAlphaNum, _ = regexp.Compile("[^A-Za-z0-9_]+")
 
 // Enumerate returns a slice containing all Flags in the Flagset
 func Enumerate(flagset *flag.FlagSet) []*flag.Flag {
@@ -29,6 +33,18 @@ func FillFromEnv(prefix string, fs *flag.FlagSet) {
 	fillFromEnv(prefix, fs, os.Getenv)
 }
 
+// EnvKey produces a namespaced environment variable key, concatonates a prefix
+// and key with an infix underscore, replacing all non-alphanumeric,
+// non-underscope characters with underscores, and upper-casing the entire
+// string
+func EnvKey(prefix, key string) string {
+	return strings.ToUpper(fmt.Sprintf(
+		"%s_%s",
+		notAlphaNum.ReplaceAllString(prefix, "_"),
+		notAlphaNum.ReplaceAllString(key, "_"),
+	))
+}
+
 func fillFromEnv(prefix string, fs *flag.FlagSet, getenv func(string) string) {
 	alreadySet := make(map[string]bool)
 	fs.Visit(func(f *flag.Flag) {
@@ -36,7 +52,7 @@ func fillFromEnv(prefix string, fs *flag.FlagSet, getenv func(string) string) {
 	})
 	fs.VisitAll(func(f *flag.Flag) {
 		if !alreadySet[f.Name] {
-			key := strings.ToUpper(strings.Replace(prefix+"_"+f.Name, "-", "_", -1))
+			key := EnvKey(prefix, f.Name)
 			val := getenv(key)
 			if val != "" {
 				fs.Set(f.Name, val)

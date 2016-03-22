@@ -54,7 +54,7 @@ GLOBAL OPTIONS:
 	--foo		(default: false)	do the foo
 	--qux=ducks	(default: "\t\n")	rhymes with ducks
 
-Global options can also be configured via upper-case environment variables prefixed with "FOO"
+Global options can also be configured via upper-case environment variables prefixed with "FOO_"
 For example, "--some_flag" --> "FOO_SOME_FLAG"
 
 Run "foo help <command>" for more details on a specific command.
@@ -93,6 +93,9 @@ OPTIONS:
 	--foo		(default: false)	do the foo
 	--qux=ducks	(default: "\t\n")	rhymes with ducks
 
+Options can also be configured via upper-case environment variables prefixed with "FOO_"
+For example, "--some_flag" --> "FOO_SOME_FLAG"
+
 For help on global options run "foo help"
 `)
 
@@ -118,5 +121,8 @@ OPTIONS:
 	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
 	--foo		(default: false)	do the foo
 	--qux=ducks	(default: "\t\n")	rhymes with ducks
+
+Options can also be configured via upper-case environment variables prefixed with "BAR_"
+For example, "--some_flag" --> "BAR_SOME_FLAG"
 `)
 }
