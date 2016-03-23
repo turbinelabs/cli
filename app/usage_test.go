@@ -16,6 +16,7 @@ func testFlags() *flag.FlagSet {
 	flags.Float64("blegga", 0.1, "on the spectrum of `fondue`, where do you fall?")
 	flags.String("baz", "", "do you want baz with that?")
 	flags.String("qux", "\t\n", "rhymes with `ducks`")
+	flags.String("fnord", "", "rhymes with `fjord`")
 	return &flags
 }
 
@@ -51,6 +52,7 @@ GLOBAL OPTIONS:
 	--bar=quantity	(default: 3)		the quantity of bars you want
 	--baz=string	(default: "")		do you want baz with that?
 	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
+	--fnord=fjord				rhymes with fjord
 	--foo		(default: false)	do the foo
 	--qux=ducks	(default: "\t\n")	rhymes with ducks
 
@@ -90,6 +92,7 @@ OPTIONS:
 	--bar=quantity	(default: 3)		the quantity of bars you want
 	--baz=string	(default: "")		do you want baz with that?
 	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
+	--fnord=fjord				rhymes with fjord
 	--foo		(default: false)	do the foo
 	--qux=ducks	(default: "\t\n")	rhymes with ducks
 
@@ -119,6 +122,7 @@ OPTIONS:
 	--bar=quantity	(default: 3)		the quantity of bars you want
 	--baz=string	(default: "")		do you want baz with that?
 	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
+	--fnord=fjord				rhymes with fjord
 	--foo		(default: false)	do the foo
 	--qux=ducks	(default: "\t\n")	rhymes with ducks
 

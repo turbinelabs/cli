@@ -108,8 +108,21 @@ func newUsage(a App, wr io.Writer) Usage {
 			if typeName == "string" || strings.IndexFunc(defValue, notGraphic) != -1 {
 				defValue = fmt.Sprintf("%q", f.DefValue)
 			}
+
+			if defValue != "" {
+				defValue = fmt.Sprintf("(default: %s)", defValue)
+			}
+
 			//--things=int (default: 5)
-			return fmt.Sprintf("\n\t%s%s%s%s\t(default: %s)\t%s", prefix, f.Name, eq, typeName, defValue, usage)
+			return fmt.Sprintf(
+				"\n\t%s%s%s%s\t%s\t%s",
+				prefix,
+				f.Name,
+				eq,
+				typeName,
+				defValue,
+				usage,
+			)
 		},
 	}
 
