@@ -31,35 +31,141 @@ func TestUsageGlobal(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	usage := newUsage(subCmdApp, buf)
+	usage := newUsage(subCmdApp, buf, 80)
 	usage.Global(cmds, testFlags())
 
-	assert.Equal(t, buf.String(), `NAME:
-	foo - maybe foo, maybe bar
+	assert.Equal(t, buf.String(), bold("NAME")+`
+    foo - maybe foo, maybe bar
 
-USAGE:
-	foo [global options] <command> [command options] [arguments...]
+`+bold("USAGE")+`
+    foo [global options] <command> [command options] [arguments...]
 
-VERSION:
-	1.0
+`+bold("VERSION")+`
+    1.0
 
-COMMANDS:
-	foo			foo the thing
-	barzywarzyflarzy	bar the thing
-	baz			baz the thing
+`+bold("COMMANDS")+`
+    `+ul("foo")+`     foo the thing
 
-GLOBAL OPTIONS:
-	--bar=quantity	(default: 3)		the quantity of bars you want
-	--baz=string	(default: "")		do you want baz with that?
-	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
-	--fnord=fjord				rhymes with fjord
-	--foo		(default: false)	do the foo
-	--qux=ducks	(default: "\t\n")	rhymes with ducks
+    `+ul("barzywarzyflarzy")+`
+            bar the thing
 
-Global options can also be configured via upper-case environment variables prefixed with "FOO_"
-For example, "--some_flag" --> "FOO_SOME_FLAG"
+    `+ul("baz")+`     baz the thing
+
+`+bold("GLOBAL OPTIONS")+`
+    --`+ul("bar")+`=quantity
+            (default: 3)
+            the quantity of bars you want
+
+    --`+ul("baz")+`=string
+            do you want baz with that?
+
+    --`+ul("blegga")+`=fondue
+            (default: 0.1)
+            on the spectrum of fondue, where do you fall?
+
+    --`+ul("fnord")+`=fjord
+            rhymes with fjord
+
+    --`+ul("foo")+`   (default: false)
+            do the foo
+
+    --`+ul("qux")+`=ducks
+            (default: "\t\n")
+            rhymes with ducks
+
+Global options can also be configured via upper-case environment variables
+prefixed with "FOO_" For example, "--some-flag" --> "FOO_SOME_FLAG"
 
 Run "foo help <command>" for more details on a specific command.
+`)
+
+	buf = new(bytes.Buffer)
+	usage = newUsage(subCmdApp, buf, 20)
+	usage.Global(cmds, testFlags())
+
+	assert.Equal(t, buf.String(), bold("NAME")+`
+    foo - maybe foo,
+    maybe bar
+
+`+bold("USAGE")+`
+    foo [global
+    options]
+    <command>
+    [command
+    options]
+    [arguments...]
+
+`+bold("VERSION")+`
+    1.0
+
+`+bold("COMMANDS")+`
+    `+ul("foo")+`     foo the
+            thing
+
+    `+ul("barzywarzyflarzy")+`
+            bar the
+            thing
+
+    `+ul("baz")+`     baz the
+            thing
+
+`+bold("GLOBAL OPTIONS")+`
+    --`+ul("bar")+`=quantity
+            (default:
+            3)
+            the
+            quantity
+            of bars
+            you want
+
+    --`+ul("baz")+`=string
+            do you
+            want baz
+            with
+            that?
+
+    --`+ul("blegga")+`=fondue
+            (default:
+            0.1)
+            on the
+            spectrum
+            of
+            fondue,
+            where do
+            you
+            fall?
+
+    --`+ul("fnord")+`=fjord
+            rhymes
+            with
+            fjord
+
+    --`+ul("foo")+`   (default:
+            false)
+            do the
+            foo
+
+    --`+ul("qux")+`=ducks
+            (default:
+            "\t\n")
+            rhymes
+            with
+            ducks
+
+Global options can
+also be configured
+via upper-case
+environment
+variables prefixed
+with "FOO_" For
+example,
+"--some-flag" -->
+"FOO_SOME_FLAG"
+
+Run "foo help
+<command>" for more
+details on a
+specific command.
 `)
 }
 
@@ -73,60 +179,160 @@ func TestUsageCommand(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	usage := newUsage(subCmdApp, buf)
+	usage := newUsage(subCmdApp, buf, 80)
 	usage.Command(cmd)
 
-	assert.Equal(t, buf.String(), `NAME:
-	foo - foo the thing
+	assert.Equal(t, buf.String(), bold("NAME")+`
+    foo - foo the thing
 
-USAGE:
-	foo foo [FOO]
+`+bold("USAGE")+`
+    foo foo [FOO]
 
-VERSION:
-	1.0
+`+bold("VERSION")+`
+    1.0
 
-DESCRIPTION:
-	more deeply foo the thing
+`+bold("DESCRIPTION")+`
+    more deeply foo the thing
 
-OPTIONS:
-	--bar=quantity	(default: 3)		the quantity of bars you want
-	--baz=string	(default: "")		do you want baz with that?
-	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
-	--fnord=fjord				rhymes with fjord
-	--foo		(default: false)	do the foo
-	--qux=ducks	(default: "\t\n")	rhymes with ducks
+`+bold("OPTIONS")+`
+    --`+ul("bar")+`=quantity
+            (default: 3)
+            the quantity of bars you want
 
-Options can also be configured via upper-case environment variables prefixed with "FOO_"
-For example, "--some_flag" --> "FOO_SOME_FLAG"
+    --`+ul("baz")+`=string
+            do you want baz with that?
 
-For help on global options run "foo help"
+    --`+ul("blegga")+`=fondue
+            (default: 0.1)
+            on the spectrum of fondue, where do you fall?
+
+    --`+ul("fnord")+`=fjord
+            rhymes with fjord
+
+    --`+ul("foo")+`   (default: false)
+            do the foo
+
+    --`+ul("qux")+`=ducks
+            (default: "\t\n")
+            rhymes with ducks
+
+Options can also be configured via upper-case environment variables prefixed
+with "FOO_" For example, "--some-flag" --> "FOO_SOME_FLAG"
+
+For global options run "foo help".
 `)
 
 	buf = new(bytes.Buffer)
-	usage = newUsage(singleCmdApp, buf)
+	usage = newUsage(singleCmdApp, buf, 80)
 	usage.Command(cmd)
 
-	assert.Equal(t, buf.String(), `NAME:
-	bar - foo the thing
+	assert.Equal(t, buf.String(), bold("NAME")+`
+    bar - foo the thing
 
-USAGE:
-	bar [FOO]
+`+bold("USAGE")+`
+    bar - [FOO]
 
-VERSION:
-	1.1
+`+bold("VERSION")+`
+    1.1
 
-DESCRIPTION:
-	more deeply foo the thing
+`+bold("DESCRIPTION")+`
+    more deeply foo the thing
 
-OPTIONS:
-	--bar=quantity	(default: 3)		the quantity of bars you want
-	--baz=string	(default: "")		do you want baz with that?
-	--blegga=fondue	(default: 0.1)		on the spectrum of fondue, where do you fall?
-	--fnord=fjord				rhymes with fjord
-	--foo		(default: false)	do the foo
-	--qux=ducks	(default: "\t\n")	rhymes with ducks
+`+bold("OPTIONS")+`
+    --`+ul("bar")+`=quantity
+            (default: 3)
+            the quantity of bars you want
 
-Options can also be configured via upper-case environment variables prefixed with "BAR_"
-For example, "--some_flag" --> "BAR_SOME_FLAG"
+    --`+ul("baz")+`=string
+            do you want baz with that?
+
+    --`+ul("blegga")+`=fondue
+            (default: 0.1)
+            on the spectrum of fondue, where do you fall?
+
+    --`+ul("fnord")+`=fjord
+            rhymes with fjord
+
+    --`+ul("foo")+`   (default: false)
+            do the foo
+
+    --`+ul("qux")+`=ducks
+            (default: "\t\n")
+            rhymes with ducks
+
+Options can also be configured via upper-case environment variables prefixed
+with "BAR_" For example, "--some-flag" --> "BAR_SOME_FLAG"
+`)
+
+	buf = new(bytes.Buffer)
+	usage = newUsage(singleCmdApp, buf, 20)
+	usage.Command(cmd)
+
+	assert.Equal(t, buf.String(), bold("NAME")+`
+    bar - foo the
+    thing
+
+`+bold("USAGE")+`
+    bar - [FOO]
+
+`+bold("VERSION")+`
+    1.1
+
+`+bold("DESCRIPTION")+`
+    more deeply foo
+    the thing
+
+`+bold("OPTIONS")+`
+    --`+ul("bar")+`=quantity
+            (default:
+            3)
+            the
+            quantity
+            of bars
+            you want
+
+    --`+ul("baz")+`=string
+            do you
+            want baz
+            with
+            that?
+
+    --`+ul("blegga")+`=fondue
+            (default:
+            0.1)
+            on the
+            spectrum
+            of
+            fondue,
+            where do
+            you
+            fall?
+
+    --`+ul("fnord")+`=fjord
+            rhymes
+            with
+            fjord
+
+    --`+ul("foo")+`   (default:
+            false)
+            do the
+            foo
+
+    --`+ul("qux")+`=ducks
+            (default:
+            "\t\n")
+            rhymes
+            with
+            ducks
+
+Options can also be
+configured via
+upper-case
+environment
+variables prefixed
+with "BAR_" For
+example,
+"--some-flag" -->
+"BAR_SOME_FLAG"
 `)
 }

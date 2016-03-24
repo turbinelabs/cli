@@ -1,9 +1,14 @@
 package app
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"go/doc"
 	"io"
+	"os"
+	"os/exec"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
@@ -30,109 +35,175 @@ type usageT struct {
 	globalUsageTemplate  *template.Template
 	commandUsageTemplate *template.Template
 	tabWriter            *tabwriter.Writer
+	width                int
 }
 
 const (
 	globalUsageTemplateStr = `
-NAME:
-{{printf "\t%s - %s" .Executable .Description}}
-
-USAGE:
-{{printf "\t%s" .Executable}} [global options] <command> [command options] [arguments...]
-
-VERSION:
-{{printf "\t%s" .Version}}
-
-COMMANDS:{{range .Commands}}
-{{printf "\t%s\t%s" .Name .Summary}}{{end}}
-
-GLOBAL OPTIONS:{{range .Flags}}{{printOption .}}{{end}}
-
-Global options can also be configured via upper-case environment variables prefixed with "{{.EnvPrefix}}"
-For example, "--some_flag" --> "{{.EnvPrefix}}SOME_FLAG"
-
-Run "{{.Executable}} help <command>" for more details on a specific command.
-`
+{{bold "NAME"}}
+{{cleanf 4 "%s - %s" .Executable .Description}}
+{{bold "USAGE"}}
+{{cleanf 4 "%s [global options] <command> [command options] [arguments...]" .Executable}}
+{{bold "VERSION"}}
+{{clean 4 .Version}}
+{{bold "COMMANDS"}}{{range .Commands}}
+{{cmd .Name .Summary}}{{end}}
+{{bold "GLOBAL OPTIONS"}}{{range .Flags}}{{option .}}{{end}}
+{{optionsText "Global options" .EnvPrefix}}
+{{cmdHelp .Executable}}`
 	commandUsageTemplateStr = `
-NAME:
-{{if .HasSubCmds}}{{printf "\t%s - %s" .Cmd.Name .Cmd.Summary}}
-{{else}}{{printf "\t%s - %s" .Executable .Cmd.Summary}}
-{{end}}
-USAGE:
-{{if .HasSubCmds}}{{printf "\t%s %s %s" .Executable .Cmd.Name .Cmd.Usage}}
-{{else}}{{printf "\t%s %s" .Executable .Cmd.Usage}}
-{{end}}
-VERSION:
-{{printf "\t%s" .Version}}
-
-DESCRIPTION:
-{{range $line := descToLines .Cmd.Description}}{{printf "\t%s" $line}}
-{{end}}
-{{if .CmdFlags}}OPTIONS:{{range .CmdFlags}}{{printOption .}}{{end}}{{end}}
-
-Options can also be configured via upper-case environment variables prefixed with "{{.EnvPrefix}}"
-For example, "--some_flag" --> "{{.EnvPrefix}}SOME_FLAG"
-{{if .HasSubCmds}}
-For help on global options run "{{.Executable}} help"
-{{end}}`
+{{bold "NAME"}}
+{{if .HasSubCmds}}{{cleanf 4 "%s - %s" .Cmd.Name .Cmd.Summary}}
+{{else}}{{cleanf 4 "%s - %s" .Executable .Cmd.Summary}}
+{{end}}{{bold "USAGE"}}
+{{if .HasSubCmds}}{{cleanf 4 "%s %s %s" .Executable .Cmd.Name .Cmd.Usage}}
+{{else}}{{cleanf 4 "%s - %s" .Executable .Cmd.Usage}}
+{{end}}{{bold "VERSION"}}
+{{clean 4 .Version}}
+{{bold "DESCRIPTION"}}
+{{clean 4 .Cmd.Description}}
+{{if .CmdFlags}}{{bold "OPTIONS"}}{{range .CmdFlags}}{{option .}}{{end}}
+{{optionsText "Options" .EnvPrefix}}{{end}}
+{{- if .HasSubCmds}}
+{{globalHelp .Executable}}{{end}}`
 )
 
 func notGraphic(r rune) bool {
 	return !unicode.IsGraphic(r)
 }
 
-func newUsage(a App, wr io.Writer) Usage {
+func ul(s string) string {
+	return "\033[4m" + s + "\033[0m"
+}
+
+func bold(s string) string {
+	return "\033[1m" + s + "\033[0m"
+}
+
+func termWidth() int {
+	cmd := exec.Command("stty", "size")
+	cmd.Stdin = os.Stdin
+	bytes, err := cmd.Output()
+	if err != nil {
+		return 80
+	}
+	pair := strings.SplitN(string(bytes), " ", 2)
+	w, err := strconv.Atoi(strings.TrimSpace(pair[1]))
+	if err != nil {
+		return 80
+	}
+	return w
+}
+
+func (u usageT) cleanf(indent int, format string, args ...interface{}) string {
+	return u.clean(indent, fmt.Sprintf(format, args...))
+}
+
+// replace whitespace with a single space, indent and wrap
+func (u usageT) clean(indent int, s string) string {
+	clean := strings.Join(strings.Fields(s), " ")
+	var b bytes.Buffer
+	doc.ToText(&b, clean, strings.Repeat(" ", indent), "", u.width-indent)
+	return b.String()
+}
+
+// print a flag, including defaults
+func (u usageT) option(f *flag.Flag) string {
+	typeName, usage := flag.UnquoteUsage(f)
+	if f.Name == "h" || f.Name == "v" {
+		return ""
+	}
+	prefix := "--"
+	if len(f.Name) == 1 {
+		prefix = "-"
+	}
+	// flags doesn't export types, so we have to cheat
+	eq := "="
+	if typeName == "" {
+		eq = ""
+	}
+	defValue := f.DefValue
+	if defValue != "" {
+		if typeName == "string" || strings.IndexFunc(defValue, notGraphic) != -1 {
+			defValue = fmt.Sprintf("%q", defValue)
+		}
+		defValue = u.cleanf(12, "(default: %s)", defValue)
+	}
+	result := ""
+	nameLen := len(prefix + f.Name + eq + typeName)
+	fullName := "    " + prefix + ul(f.Name) + eq + typeName
+	//     --name=type (default: x)
+	if nameLen < 7 {
+		result += fullName
+		if defValue != "" {
+			result += fmt.Sprintf("%s%s", strings.Repeat(" ", 8-nameLen), defValue[12:])
+		}
+	} else {
+		//     --longerName=type
+		//            (default: x)
+		result += u.clean(4, fullName)
+		if defValue != "" {
+			result += defValue
+		}
+	}
+	result += u.clean(12, usage)
+	return "\n" + result
+}
+
+func (u usageT) cmd(name, desc string) string {
+	cleanDesc := u.clean(12, desc)
+	if len(name) < 7 && len(cleanDesc) < termWidth() {
+		return fmt.Sprintf("    %s%s%s", ul(name), strings.Repeat(" ", 8-len(name)), cleanDesc[12:])
+	} else {
+		return fmt.Sprintf("    %s\n%s", ul(name), cleanDesc)
+	}
+}
+
+func (u usageT) optionsText(prefix, envKey string) string {
+	return u.cleanf(0, `%s can also be configured via upper-case environment variables prefixed with "%s"
+For example, "--some-flag" --> "%sSOME_FLAG"`,
+		prefix,
+		envKey,
+		envKey,
+	)
+}
+
+func (u usageT) globalHelp(name string) string {
+	return u.cleanf(0, `For global options run "%s help".`, name)
+}
+
+func (u usageT) cmdHelp(name string) string {
+	return u.cleanf(0, `Run "%s help <command>" for more details on a specific command.`, name)
+}
+
+func newUsage(a App, wr io.Writer, width int) Usage {
+	if width == -1 {
+		width = termWidth()
+	}
 	tabWriter := new(tabwriter.Writer)
 	tabWriter.Init(wr, 0, 8, 1, '\t', 0)
 
+	u := usageT{app: a, tabWriter: tabWriter, width: width}
+
 	templFuncs := template.FuncMap{
-		"descToLines": func(s string) []string {
-			// trim leading/trailing whitespace and split into slice of lines
-			return strings.Split(strings.Trim(s, "\n\t "), "\n")
-		},
-		"printOption": func(f *flag.Flag) string {
-			typeName, usage := flag.UnquoteUsage(f)
-			if f.Name == "h" || f.Name == "v" {
-				return ""
-			}
-			prefix := "--"
-			if len(f.Name) == 1 {
-				prefix = "-"
-			}
-			// flags doesn't export types, so we have to cheat
-			eq := "="
-			if typeName == "" {
-				eq = ""
-			}
-			defValue := f.DefValue
-			if typeName == "string" || strings.IndexFunc(defValue, notGraphic) != -1 {
-				defValue = fmt.Sprintf("%q", f.DefValue)
-			}
-
-			if defValue != "" {
-				defValue = fmt.Sprintf("(default: %s)", defValue)
-			}
-
-			//--things=int (default: 5)
-			return fmt.Sprintf(
-				"\n\t%s%s%s%s\t%s\t%s",
-				prefix,
-				f.Name,
-				eq,
-				typeName,
-				defValue,
-				usage,
-			)
-		},
+		"bold":        bold,
+		"ul":          ul,
+		"clean":       u.clean,
+		"cmd":         u.cmd,
+		"cleanf":      u.cleanf,
+		"option":      u.option,
+		"optionsText": u.optionsText,
+		"globalHelp":  u.globalHelp,
+		"cmdHelp":     u.cmdHelp,
 	}
 
-	globalUsageTemplate := template.Must(
+	u.globalUsageTemplate = template.Must(
 		template.New("global_usage").Funcs(templFuncs).Parse(globalUsageTemplateStr[1:]))
 
-	commandUsageTemplate := template.Must(
+	u.commandUsageTemplate = template.Must(
 		template.New("command_usage").Funcs(templFuncs).Parse(commandUsageTemplateStr[1:]))
 
-	return usageT{a, globalUsageTemplate, commandUsageTemplate, tabWriter}
+	return u
 }
 
 func (u usageT) Global(cmds []*command.Cmd, fs *flag.FlagSet) {
