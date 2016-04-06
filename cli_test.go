@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/turbinelabs/tbn/cli/command"
-	"github.com/turbinelabs/tbn/testhelpers/assert"
+	"github.com/turbinelabs/tbn/test/assert"
 )
 
 type testRunner struct {
