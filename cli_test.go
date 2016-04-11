@@ -99,7 +99,7 @@ func (m *cliTestMock) exit(code int) {
 }
 
 func newCliAndMock(t *testing.T, hasSubs bool) (*CLI, *cliTestMock) {
-	cmds := []*command.Cmd{&command.Cmd{
+	cmds := []*command.Cmd{{
 		Name:   "foo",
 		Runner: &testRunner{t: t, name: "foo", args: []string{}, cmdErr: command.NoError()},
 	}}
@@ -142,36 +142,36 @@ var (
 	}
 
 	subGlobalHelpTestCases = [][]string{
-		[]string{"help"},
-		[]string{"-help"},
-		[]string{"-h"},
-		[]string{"help", "bogus"},
-		[]string{"-help", "bogus"},
-		[]string{"-h", "bogus"},
-		[]string{"bogus", "-help"},
-		[]string{"bogus", "-h"},
+		{"help"},
+		{"-help"},
+		{"-h"},
+		{"help", "bogus"},
+		{"-help", "bogus"},
+		{"-h", "bogus"},
+		{"bogus", "-help"},
+		{"bogus", "-h"},
 	}
 
 	subCmdHelpTestCases = [][]string{
-		[]string{"help", "foo"},
-		[]string{"-help", "foo"},
-		[]string{"-h", "foo"},
-		[]string{"foo", "-help"},
-		[]string{"foo", "-h"},
+		{"help", "foo"},
+		{"-help", "foo"},
+		{"-h", "foo"},
+		{"foo", "-help"},
+		{"foo", "-h"},
 	}
 
 	subVersionTestCases = [][]string{
-		[]string{"version"},
-		[]string{"-version"},
-		[]string{"-v"},
-		[]string{"version", "foo"},
-		[]string{"-version", "foo"},
-		[]string{"-v", "foo"},
-		[]string{"version", "bogus"},
-		[]string{"-version", "bogus"},
-		[]string{"-v", "bogus"},
-		[]string{"foo", "-version"},
-		[]string{"foo", "-v"},
+		{"version"},
+		{"-version"},
+		{"-v"},
+		{"version", "foo"},
+		{"-version", "foo"},
+		{"-v", "foo"},
+		{"version", "bogus"},
+		{"-version", "bogus"},
+		{"-v", "bogus"},
+		{"foo", "-version"},
+		{"foo", "-v"},
 	}
 
 	badInputTestCases = []badInputTestCase{
@@ -179,13 +179,13 @@ var (
 	}
 
 	helpTestCases = [][]string{
-		[]string{"-help"},
-		[]string{"-h"},
+		{"-help"},
+		{"-h"},
 	}
 
 	versionTestCases = [][]string{
-		[]string{"-version"},
-		[]string{"-v"},
+		{"-version"},
+		{"-v"},
 	}
 )
 

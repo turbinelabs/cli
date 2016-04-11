@@ -25,9 +25,9 @@ var singleCmdApp = App{"bar", "maybe bar, maybe baz", "1.1", false}
 
 func TestUsageGlobal(t *testing.T) {
 	cmds := []*command.Cmd{
-		&command.Cmd{Name: "foo", Summary: "foo the thing"},
-		&command.Cmd{Name: "barzywarzyflarzy", Summary: "bar the thing"},
-		&command.Cmd{Name: "baz", Summary: "baz the thing"},
+		{Name: "foo", Summary: "foo the thing"},
+		{Name: "barzywarzyflarzy", Summary: "bar the thing"},
+		{Name: "baz", Summary: "baz the thing"},
 	}
 
 	buf := new(bytes.Buffer)
