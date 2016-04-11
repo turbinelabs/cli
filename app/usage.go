@@ -57,7 +57,7 @@ const (
 {{else}}{{cleanf 4 "%s - %s" .Executable .Cmd.Summary}}
 {{end}}{{bold "USAGE"}}
 {{if .HasSubCmds}}{{cleanf 4 "%s %s %s" .Executable .Cmd.Name .Cmd.Usage}}
-{{else}}{{cleanf 4 "%s - %s" .Executable .Cmd.Usage}}
+{{else}}{{cleanf 4 "%s %s" .Executable .Cmd.Usage}}
 {{end}}{{bold "VERSION"}}
 {{clean 4 .Version}}
 {{bold "DESCRIPTION"}}

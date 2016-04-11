@@ -230,7 +230,7 @@ For global options run "foo help".
     bar - foo the thing
 
 `+bold("USAGE")+`
-    bar - [FOO]
+    bar [FOO]
 
 `+bold("VERSION")+`
     1.1
@@ -273,7 +273,7 @@ with "BAR_" For example, "--some-flag" --> "BAR_SOME_FLAG"
     thing
 
 `+bold("USAGE")+`
-    bar - [FOO]
+    bar [FOO]
 
 `+bold("VERSION")+`
     1.1
