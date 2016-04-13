@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/turbinelabs/tbn/cli"
-	"github.com/turbinelabs/tbn/cli/command"
+	"github.com/turbinelabs/cli"
+	"github.com/turbinelabs/cli/command"
 )
 
 // The typical pattern is to provide a public CmdXYZ() func for each

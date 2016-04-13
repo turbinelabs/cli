@@ -10,9 +10,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/turbinelabs/tbn/cli/app"
-	"github.com/turbinelabs/tbn/cli/command"
-	"github.com/turbinelabs/tbn/cli/flags"
+	"github.com/turbinelabs/cli/app"
+	"github.com/turbinelabs/cli/command"
+	"github.com/turbinelabs/cli/flags"
 )
 
 const HelpSummary = "Show a list of commands or help for one command"

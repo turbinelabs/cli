@@ -14,8 +14,8 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/turbinelabs/tbn/cli/command"
-	"github.com/turbinelabs/tbn/cli/flags"
+	"github.com/turbinelabs/cli/command"
+	"github.com/turbinelabs/cli/flags"
 )
 
 // Usage provides methods to output global and command-specific usage of an App.

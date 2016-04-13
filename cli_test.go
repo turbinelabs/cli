@@ -4,8 +4,8 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/turbinelabs/tbn/cli/command"
-	"github.com/turbinelabs/tbn/test/assert"
+	"github.com/turbinelabs/cli/command"
+	"github.com/turbinelabs/test/assert"
 )
 
 type testRunner struct {
