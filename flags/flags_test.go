@@ -76,6 +76,7 @@ func TestEnvKey(t *testing.T) {
 	values := []string{
 		"A_B_CD",
 		"A-B*CD",
+		"A.b-cd",
 		"a&b-cd",
 		"aöbëcD",
 		"a\tb\ncD",

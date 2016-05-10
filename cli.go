@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/turbinelabs/cli/app"
 	"github.com/turbinelabs/cli/command"
@@ -239,7 +240,7 @@ func (cli *CLI) handleBadCmd(args []string) command.CmdErr {
 
 func (cli *CLI) command(name string) *command.Cmd {
 	for _, c := range cli.commands {
-		if c.Name == name {
+		if strings.ToLower(c.Name) == strings.ToLower(name) {
 			return c
 		}
 	}
