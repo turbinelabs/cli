@@ -23,14 +23,17 @@ func Enumerate(flagset *flag.FlagSet) []*flag.Flag {
 	return flags
 }
 
-// FillFromEnv parses all registered flags in the given flagset,
+// FillFromEnv parses all registered flags in the given FlagSet,
 // and if they are not already set it attempts to set their values from
 // environment variables. Environment variables take the name of the flag but
 // are UPPERCASE, have the given prefix, and any dashes are replaced by
 // underscores. For example:
 // 	some-flag -> PREFIX_SOME_FLAG
-func FillFromEnv(prefix string, fs *flag.FlagSet) {
-	fillFromEnv(prefix, fs, os.Getenv)
+//
+// the provided map[string]string is also populated with the keys and values
+// added to the FlagSet.
+func FillFromEnv(prefix string, fs *flag.FlagSet, filledFromEnv map[string]string) {
+	fillFromEnv(prefix, fs, filledFromEnv, os.Getenv)
 }
 
 // EnvKey produces a namespaced environment variable key, concatonates a prefix
@@ -45,8 +48,13 @@ func EnvKey(prefix, key string) string {
 	))
 }
 
-func fillFromEnv(prefix string, fs *flag.FlagSet, getenv func(string) string) {
-	alreadySet := make(map[string]bool)
+func fillFromEnv(
+	prefix string,
+	fs *flag.FlagSet,
+	filledFromEnv map[string]string,
+	getenv func(string) string,
+) {
+	alreadySet := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) {
 		alreadySet[f.Name] = true
 	})
@@ -56,6 +64,7 @@ func fillFromEnv(prefix string, fs *flag.FlagSet, getenv func(string) string) {
 			val := getenv(key)
 			if val != "" {
 				fs.Set(f.Name, val)
+				filledFromEnv[key] = val
 			}
 		}
 	})

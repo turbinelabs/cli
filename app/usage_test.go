@@ -22,6 +22,7 @@ func testFlags() *flag.FlagSet {
 
 var subCmdApp = App{"foo", "maybe foo, maybe bar", "1.0", true}
 var singleCmdApp = App{"bar", "maybe bar, maybe baz", "1.1", false}
+var flagsFromEnv = map[string]string{"FOO": "bar", "BAZ": "blegga"}
 
 func TestUsageGlobal(t *testing.T) {
 	cmds := []*command.Cmd{
@@ -32,7 +33,7 @@ func TestUsageGlobal(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	usage := newUsage(subCmdApp, buf, 80)
-	usage.Global(cmds, testFlags())
+	usage.Global(cmds, testFlags(), flagsFromEnv)
 
 	assert.Equal(t, buf.String(), bold("NAME")+`
     foo - maybe foo, maybe bar
@@ -74,14 +75,19 @@ func TestUsageGlobal(t *testing.T) {
             rhymes with ducks
 
 Global options can also be configured via upper-case environment variables
-prefixed with "FOO_" For example, "--some-flag" --> "FOO_SOME_FLAG"
+prefixed with "FOO_" For example, "--some-flag" --> "FOO_SOME_FLAG".
+Command-line flags take precidence over environment variables. Options currently
+configured from the Environment:
+
+    BAZ=blegga
+    FOO=bar
 
 Run "foo help <command>" for more details on a specific command.
 `)
 
 	buf = new(bytes.Buffer)
 	usage = newUsage(subCmdApp, buf, 20)
-	usage.Global(cmds, testFlags())
+	usage.Global(cmds, testFlags(), flagsFromEnv)
 
 	assert.Equal(t, buf.String(), bold("NAME")+`
     foo - maybe foo,
@@ -160,7 +166,17 @@ variables prefixed
 with "FOO_" For
 example,
 "--some-flag" -->
-"FOO_SOME_FLAG"
+"FOO_SOME_FLAG".
+Command-line flags
+take precidence over
+environment
+variables. Options
+currently configured
+from the
+Environment:
+
+    BAZ=blegga
+    FOO=bar
 
 Run "foo help
 <command>" for more
@@ -180,7 +196,7 @@ func TestUsageCommand(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	usage := newUsage(subCmdApp, buf, 80)
-	usage.Command(cmd)
+	usage.Command(cmd, flagsFromEnv)
 
 	assert.Equal(t, buf.String(), bold("NAME")+`
     foo - foo the thing
@@ -217,14 +233,19 @@ func TestUsageCommand(t *testing.T) {
             rhymes with ducks
 
 Options can also be configured via upper-case environment variables prefixed
-with "FOO_" For example, "--some-flag" --> "FOO_SOME_FLAG"
+with "FOO_" For example, "--some-flag" --> "FOO_SOME_FLAG". Command-line flags
+take precidence over environment variables. Options currently configured from
+the Environment:
+
+    BAZ=blegga
+    FOO=bar
 
 For global options run "foo help".
 `)
 
 	buf = new(bytes.Buffer)
 	usage = newUsage(singleCmdApp, buf, 80)
-	usage.Command(cmd)
+	usage.Command(cmd, flagsFromEnv)
 
 	assert.Equal(t, buf.String(), bold("NAME")+`
     bar - foo the thing
@@ -261,12 +282,17 @@ For global options run "foo help".
             rhymes with ducks
 
 Options can also be configured via upper-case environment variables prefixed
-with "BAR_" For example, "--some-flag" --> "BAR_SOME_FLAG"
+with "BAR_" For example, "--some-flag" --> "BAR_SOME_FLAG". Command-line flags
+take precidence over environment variables. Options currently configured from
+the Environment:
+
+    BAZ=blegga
+    FOO=bar
 `)
 
 	buf = new(bytes.Buffer)
 	usage = newUsage(singleCmdApp, buf, 20)
-	usage.Command(cmd)
+	usage.Command(cmd, flagsFromEnv)
 
 	assert.Equal(t, buf.String(), bold("NAME")+`
     bar - foo the
@@ -333,6 +359,16 @@ variables prefixed
 with "BAR_" For
 example,
 "--some-flag" -->
-"BAR_SOME_FLAG"
+"BAR_SOME_FLAG".
+Command-line flags
+take precidence over
+environment
+variables. Options
+currently configured
+from the
+Environment:
+
+    BAZ=blegga
+    FOO=bar
 `)
 }

@@ -50,25 +50,34 @@ func TestFillFromEnvAllUnset(t *testing.T) {
 	mock := flagsTestMock{}
 	fs, fooFlag, barFlag := testFlags()
 	fs.Parse([]string{})
-	fillFromEnv("foo-bar", fs, mock.getenv)
-	assert.Equal(t, len(mock.keys), 2)
-	assert.True(t,
-		(mock.keys[0] == "FOO_BAR_FOO_BAZ" && mock.keys[1] == "FOO_BAR_BAR") ||
-			(mock.keys[0] == "FOO_BAR_BAR" && mock.keys[1] == "FOO_BAR_FOO_BAZ"),
-	)
+
+	gotMap := map[string]string{}
+	wantMap := map[string]string{"FOO_BAR_FOO_BAZ": "blegga"}
+	wantKeys := []string{"FOO_BAR_FOO_BAZ", "FOO_BAR_BAR"}
+
+	fillFromEnv("foo-bar", fs, gotMap, mock.getenv)
+
+	assert.HasSameElements(t, mock.keys, wantKeys)
 	assert.Equal(t, *fooFlag, "blegga")
 	assert.Equal(t, *barFlag, "")
+	assert.DeepEqual(t, gotMap, wantMap)
 }
 
 func TestFillFromEnvOneSet(t *testing.T) {
 	mock := flagsTestMock{}
 	fs, fooFlag, barFlag := testFlags()
 	fs.Parse([]string{"--foo-baz=blargo"})
-	fillFromEnv("foo-bar", fs, mock.getenv)
-	assert.Equal(t, len(mock.keys), 1)
-	assert.True(t, mock.keys[0] == "FOO_BAR_BAR")
+
+	gotMap := map[string]string{}
+	wantMap := map[string]string{}
+	wantKeys := []string{"FOO_BAR_BAR"}
+
+	fillFromEnv("foo-bar", fs, gotMap, mock.getenv)
+
+	assert.HasSameElements(t, mock.keys, wantKeys)
 	assert.Equal(t, *fooFlag, "blargo")
 	assert.Equal(t, *barFlag, "")
+	assert.DeepEqual(t, gotMap, wantMap)
 }
 
 func TestEnvKey(t *testing.T) {

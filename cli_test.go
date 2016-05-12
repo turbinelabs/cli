@@ -2,6 +2,7 @@ package cli
 
 import (
 	"flag"
+	"fmt"
 	"testing"
 
 	"github.com/turbinelabs/cli/command"
@@ -37,6 +38,7 @@ type cliTestMock struct {
 	args []string
 
 	wantUsageFlagSet    *flag.FlagSet
+	wantFlagsFromEnv    map[string]string
 	wantUsageGlobalCmds []*command.Cmd
 	wantUsageCmd        *command.Cmd
 	wantFillFlagSets    []*flag.FlagSet
@@ -53,14 +55,16 @@ type cliTestMock struct {
 	barFlag bool
 }
 
-func (m *cliTestMock) Global(cmds []*command.Cmd, fs *flag.FlagSet) {
+func (m *cliTestMock) Global(cmds []*command.Cmd, fs *flag.FlagSet, ffe map[string]string) {
 	assert.DeepEqual(m.t, cmds, m.wantUsageGlobalCmds)
 	assert.DeepEqual(m.t, fs, m.wantUsageFlagSet)
+	assert.Equal(m.t, fmt.Sprintf("%p", ffe), fmt.Sprintf("%p", m.wantFlagsFromEnv))
 	m.usageGlobalCalled++
 }
 
-func (m *cliTestMock) Command(cmd *command.Cmd) {
+func (m *cliTestMock) Command(cmd *command.Cmd, ffe map[string]string) {
 	assert.Equal(m.t, cmd, m.wantUsageCmd)
+	assert.Equal(m.t, fmt.Sprintf("%p", ffe), fmt.Sprintf("%p", m.wantFlagsFromEnv))
 	m.usageCmdCalled++
 }
 
@@ -68,7 +72,7 @@ func (m *cliTestMock) Print() {
 	m.versionPrintCalled++
 }
 
-func (m *cliTestMock) fill(fs *flag.FlagSet) {
+func (m *cliTestMock) fill(fs *flag.FlagSet, ffe map[string]string) {
 	if len(m.wantFillFlagSets) == 0 {
 		m.t.Errorf("unexpected flagset: %v", fs)
 		return
@@ -80,6 +84,7 @@ func (m *cliTestMock) fill(fs *flag.FlagSet) {
 	}
 
 	assert.DeepEqual(m.t, fs, want)
+	assert.Equal(m.t, fmt.Sprintf("%p", ffe), fmt.Sprintf("%p", m.wantFlagsFromEnv))
 
 	m.fillFlagsCalled++
 }
@@ -98,7 +103,7 @@ func (m *cliTestMock) exit(code int) {
 	m.exitCalled++
 }
 
-func newCliAndMock(t *testing.T, hasSubs bool) (*CLI, *cliTestMock) {
+func newCliAndMock(t *testing.T, hasSubs bool) (*cli, *cliTestMock) {
 	cmds := []*command.Cmd{{
 		Name:   "foo",
 		Runner: &testRunner{t: t, name: "foo", args: []string{}, cmdErr: command.NoError()},
@@ -111,9 +116,11 @@ func newCliAndMock(t *testing.T, hasSubs bool) (*CLI, *cliTestMock) {
 		})
 	}
 
-	m := &cliTestMock{t: t, cmds: cmds}
+	wantFlagsFromEnv := map[string]string{}
 
-	cli := &CLI{
+	m := &cliTestMock{t: t, cmds: cmds, wantFlagsFromEnv: wantFlagsFromEnv}
+
+	cli := &cli{
 		commands: m.cmds,
 		usage:    m,
 		version:  m,
@@ -122,11 +129,13 @@ func newCliAndMock(t *testing.T, hasSubs bool) (*CLI, *cliTestMock) {
 		osArgs:           m.osArgs,
 		stderr:           m.stderr,
 		exit:             m.exit,
+
+		flagsFromEnv: wantFlagsFromEnv,
 	}
 
 	m.wantUsageGlobalCmds = cli.commands
-	m.wantUsageFlagSet = &cli.Flags
-	m.wantFillFlagSets = []*flag.FlagSet{&cli.Flags}
+	m.wantUsageFlagSet = &cli.flags
+	m.wantFillFlagSets = []*flag.FlagSet{&cli.flags}
 
 	return cli, m
 }
@@ -328,7 +337,7 @@ func TestSubCmdHelp(t *testing.T) {
 		mock.args = tc
 
 		mock.wantCode = 0
-		mock.wantFillFlagSets = []*flag.FlagSet{&cli.Flags, &mock.cmds[0].Flags}
+		mock.wantFillFlagSets = []*flag.FlagSet{&cli.flags, &mock.cmds[0].Flags}
 		mock.wantUsageCmd = mock.cmds[0]
 
 		cli.Main()
@@ -349,7 +358,7 @@ func TestSubVersion(t *testing.T) {
 
 		mock.wantCode = 0
 		if tc[0] == "foo" {
-			mock.wantFillFlagSets = []*flag.FlagSet{&cli.Flags, &mock.cmds[0].Flags}
+			mock.wantFillFlagSets = []*flag.FlagSet{&cli.flags, &mock.cmds[0].Flags}
 		}
 
 		cli.Main()
@@ -374,7 +383,7 @@ func TestSubFoo(t *testing.T) {
 	mock.cmds[0].Runner.(*testRunner).args = []string{"baz"}
 
 	mock.wantCode = 0
-	mock.wantFillFlagSets = []*flag.FlagSet{&cli.Flags, &mock.cmds[0].Flags}
+	mock.wantFillFlagSets = []*flag.FlagSet{&cli.flags, &mock.cmds[0].Flags}
 
 	cli.Main()
 	assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 1)
@@ -393,7 +402,7 @@ func TestSubFooError(t *testing.T) {
 
 	mock.wantCode = 1
 	mock.wantMsg = "foo: das ist borken!\n\n"
-	mock.wantFillFlagSets = []*flag.FlagSet{&cli.Flags, &mock.cmds[0].Flags}
+	mock.wantFillFlagSets = []*flag.FlagSet{&cli.flags, &mock.cmds[0].Flags}
 
 	cli.Main()
 	assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 1)

@@ -120,7 +120,7 @@ func Example_subCommands() {
 	)
 
 	// Global flags can be used to modify global state
-	c.Flags.BoolVar(&globalFlags.verbose, "verbose", false, "Produce verbose output")
+	c.Flags().BoolVar(&globalFlags.verbose, "verbose", false, "Produce verbose output")
 
 	// run the Main function, which calls os.Exit with the appropriate exit status
 	c.Main()
