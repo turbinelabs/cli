@@ -62,7 +62,7 @@ const (
 {{end}}{{bold "VERSION"}}
 {{clean 4 .Version}}
 {{bold "DESCRIPTION"}}
-{{clean 4 .Cmd.Description}}
+{{cleanWithPre 4 .Cmd.Description}}
 {{if .CmdFlags}}{{bold "OPTIONS"}}{{range .CmdFlags}}{{option .}}{{end}}
 {{optionsText "Options" .EnvPrefix .FlagsFromEnv}}{{end}}
 {{- if .HasSubCmds}}
@@ -105,6 +105,39 @@ func (u usageT) clean(indent int, s string) string {
 	clean := strings.Join(strings.Fields(s), " ")
 	var b bytes.Buffer
 	doc.ToText(&b, clean, strings.Repeat(" ", indent), "", u.width-indent)
+	return b.String()
+}
+
+// lines with leading 4-space indent are treated as pre-formatted text,
+// all other lines are processed as with `clean`.
+func (u usageT) cleanWithPre(indent int, s string) string {
+	lines := strings.Split(s, "\n")
+	var clean string
+	previousWasPreformatted := false
+	for _, line := range lines {
+		if strings.HasPrefix(line, "    ") {
+			if !previousWasPreformatted {
+				clean += "\n"
+			}
+			clean += line + "\n"
+			previousWasPreformatted = true
+		} else {
+			if previousWasPreformatted {
+				previousWasPreformatted = false
+			} else {
+				clean += " "
+			}
+			clean += strings.Join(strings.Fields(line), " ")
+		}
+	}
+
+	var b bytes.Buffer
+	doc.ToText(
+		&b,
+		clean,
+		strings.Repeat(" ", indent),
+		strings.Repeat(" ", indent*2),
+		u.width-indent)
 	return b.String()
 }
 
@@ -195,15 +228,16 @@ func newUsage(a App, wr io.Writer, width int) Usage {
 	u := usageT{app: a, tabWriter: tabWriter, width: width}
 
 	templFuncs := template.FuncMap{
-		"bold":        bold,
-		"ul":          ul,
-		"clean":       u.clean,
-		"cmd":         u.cmd,
-		"cleanf":      u.cleanf,
-		"option":      u.option,
-		"optionsText": u.optionsText,
-		"globalHelp":  u.globalHelp,
-		"cmdHelp":     u.cmdHelp,
+		"bold":         bold,
+		"ul":           ul,
+		"clean":        u.clean,
+		"cleanWithPre": u.cleanWithPre,
+		"cmd":          u.cmd,
+		"cleanf":       u.cleanf,
+		"option":       u.option,
+		"optionsText":  u.optionsText,
+		"globalHelp":   u.globalHelp,
+		"cmdHelp":      u.cmdHelp,
 	}
 
 	u.globalUsageTemplate = template.Must(

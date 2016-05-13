@@ -186,10 +186,15 @@ specific command.
 }
 
 func TestUsageCommand(t *testing.T) {
+	preformattedDesc := `more deeply foo the thing, with special attention to this pseudo-code:
+    if (happy) {
+        dance()
+    }`
+
 	cmd := &command.Cmd{
 		Name:        "foo",
 		Summary:     "foo the thing",
-		Description: "more deeply foo the thing",
+		Description: preformattedDesc,
 		Usage:       "[FOO]",
 		Flags:       *testFlags(),
 	}
@@ -208,7 +213,11 @@ func TestUsageCommand(t *testing.T) {
     1.0
 
 `+bold("DESCRIPTION")+`
-    more deeply foo the thing
+    more deeply foo the thing, with special attention to this pseudo-code:
+
+        if (happy) {
+            dance()
+        }
 
 `+bold("OPTIONS")+`
     --`+ul("bar")+`=quantity
@@ -257,7 +266,11 @@ For global options run "foo help".
     1.1
 
 `+bold("DESCRIPTION")+`
-    more deeply foo the thing
+    more deeply foo the thing, with special attention to this pseudo-code:
+
+        if (happy) {
+            dance()
+        }
 
 `+bold("OPTIONS")+`
     --`+ul("bar")+`=quantity
@@ -306,7 +319,15 @@ the Environment:
 
 `+bold("DESCRIPTION")+`
     more deeply foo
-    the thing
+    the thing, with
+    special
+    attention to
+    this
+    pseudo-code:
+
+        if (happy) {
+            dance()
+        }
 
 `+bold("OPTIONS")+`
     --`+ul("bar")+`=quantity
