@@ -32,6 +32,9 @@ type Cmd struct {
 // Run invokes the Runner associated with this Cmd, passing the args remaining
 // after flags are parsed out.
 func (c *Cmd) Run() CmdErr {
+	if c.Runner == nil {
+		return c.Error("No Runner specified")
+	}
 	return c.Runner.Run(c, c.Flags.Args())
 }
 
