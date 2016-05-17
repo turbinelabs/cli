@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/turbinelabs/cli/app"
@@ -50,7 +51,7 @@ type cli struct {
 // New produces a CLI for the given command.Cmd
 func New(version string, command *command.Cmd) CLI {
 	app := app.App{
-		Name:          os.Args[0],
+		Name:          path.Base(os.Args[0]),
 		Description:   command.Description,
 		VersionString: version,
 		HasSubCmds:    false,
@@ -68,7 +69,7 @@ func NewWithSubCmds(
 	commandsN ...*command.Cmd,
 ) CLI {
 	app := app.App{
-		Name:          os.Args[0],
+		Name:          path.Base(os.Args[0]),
 		Description:   description,
 		VersionString: version,
 		HasSubCmds:    true,
