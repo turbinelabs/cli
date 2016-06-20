@@ -22,8 +22,31 @@ func (f *flagsTestMock) getenv(key string) string {
 func testFlags() (*flag.FlagSet, *string, *string) {
 	var fs flag.FlagSet
 	fooFlag := fs.String("foo-baz", "", "do the foo")
-	barFlag := fs.String("bar", "", "harty har to the bar")
+	barFlag := fs.String("bar", "", Required("harty har to the bar"))
 	return &fs, fooFlag, barFlag
+}
+
+func TestRequired(t *testing.T) {
+	assert.Equal(t, Required("foo"), "[REQUIRED] foo")
+}
+
+func TestIsRequired(t *testing.T) {
+	assert.True(t, IsRequired(&flag.Flag{Usage: Required("foo")}))
+	assert.False(t, IsRequired(&flag.Flag{}))
+}
+
+func TestMissingRequired(t *testing.T) {
+	fs, _, _ := testFlags()
+	assert.DeepEqual(t, MissingRequired(fs), []string{"bar"})
+	fs.Parse([]string{"--bar=baz"})
+	assert.DeepEqual(t, MissingRequired(fs), []string{})
+}
+
+func TestAllRequired(t *testing.T) {
+	fs, _, _ := testFlags()
+	assert.DeepEqual(t, AllRequired(fs), []string{"bar"})
+	fs.Parse([]string{"--bar=baz"})
+	assert.DeepEqual(t, AllRequired(fs), []string{"bar"})
 }
 
 func TestEnumerateNil(t *testing.T) {

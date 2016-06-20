@@ -4,6 +4,7 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/turbinelabs/cli/flags"
 	"github.com/turbinelabs/test/assert"
 )
 
@@ -20,10 +21,30 @@ func (r testRunner) Run(cmd *Cmd, args []string) CmdErr {
 }
 
 func TestCmdRun(t *testing.T) {
-	var flags flag.FlagSet
-	flags.Parse([]string{"foo"})
+	var fs flag.FlagSet
+	fs.Parse([]string{"foo"})
 
-	cmd := Cmd{Name: "bar", Flags: flags, Runner: testRunner{"bar", []string{"foo"}, t}}
+	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
+	err := cmd.Run()
+	assert.Equal(t, err, CmdErr{&cmd, CmdErrCodeError, "bar: baz"})
+}
+
+func TestCmdRunRequiredMissing(t *testing.T) {
+	var fs flag.FlagSet
+	fs.String("bleh", "", flags.Required("bleh"))
+	fs.Parse([]string{"foo"})
+
+	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
+	err := cmd.Run()
+	assert.Equal(t, err, CmdErr{&cmd, CmdErrCodeBadInput, "bar: \n\n  bleh is required"})
+}
+
+func TestCmdRunRequiredProvided(t *testing.T) {
+	var fs flag.FlagSet
+	fs.String("bleh", "", flags.Required("bleh"))
+	fs.Parse([]string{"--bleh=blar", "foo"})
+
+	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
 	err := cmd.Run()
 	assert.Equal(t, err, CmdErr{&cmd, CmdErrCodeError, "bar: baz"})
 }
