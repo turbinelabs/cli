@@ -186,15 +186,22 @@ specific command.
 }
 
 func TestUsageCommand(t *testing.T) {
-	preformattedDesc := `more deeply foo the thing, with special attention to this pseudo-code:
+	desc := `more {{bold "deeply"}} foo the {{ul "thing"}}!
+
+
+
+pay attention to explicit newlines,
+and pay special attention to this pseudo-code:
+
     if (happy) {
         dance()
-    }`
+    }
+`
 
 	cmd := &command.Cmd{
 		Name:        "foo",
 		Summary:     "foo the thing",
-		Description: preformattedDesc,
+		Description: desc,
 		Usage:       "[FOO]",
 		Flags:       *testFlags(),
 	}
@@ -213,7 +220,10 @@ func TestUsageCommand(t *testing.T) {
     1.0
 
 `+bold("DESCRIPTION")+`
-    more deeply foo the thing, with special attention to this pseudo-code:
+    more `+bold("deeply")+` foo the `+ul("thing")+`!
+
+    pay attention to explicit newlines, and pay special attention to this
+    pseudo-code:
 
         if (happy) {
             dance()
@@ -266,7 +276,10 @@ For global options run "foo help".
     1.1
 
 `+bold("DESCRIPTION")+`
-    more deeply foo the thing, with special attention to this pseudo-code:
+    more `+bold("deeply")+` foo the `+ul("thing")+`!
+
+    pay attention to explicit newlines, and pay special attention to this
+    pseudo-code:
 
         if (happy) {
             dance()
@@ -318,9 +331,15 @@ the Environment:
     1.1
 
 `+bold("DESCRIPTION")+`
-    more deeply foo
-    the thing, with
-    special
+    more
+    `+bold("deeply")+`
+    foo the
+    `+ul("thing")+`!
+
+    pay attention to
+    explicit
+    newlines, and
+    pay special
     attention to
     this
     pseudo-code:
