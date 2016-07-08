@@ -40,6 +40,9 @@ type usageT struct {
 }
 
 const (
+	rightIndent     = 4 // The right-side padding for cleaned text
+	preformatIndent = 4 // The extra indent for preformatted text
+
 	globalUsageTemplateStr = `
 {{bold "NAME"}}
 {{cleanf 4 "%s - %s" .Executable .Description}}
@@ -116,8 +119,8 @@ func (u usageT) clean(indent int, s string) string {
 		&res,
 		buf.String(),
 		strings.Repeat(" ", indent),
-		strings.Repeat(" ", indent+4),
-		u.width-indent,
+		strings.Repeat(" ", indent+preformatIndent),
+		u.width-indent-rightIndent,
 	)
 	return res.String()
 }
