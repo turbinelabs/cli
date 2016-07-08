@@ -7,6 +7,7 @@ import (
 
 	"github.com/turbinelabs/cli"
 	"github.com/turbinelabs/cli/command"
+	"github.com/turbinelabs/cli/flags"
 )
 
 // The typical pattern is to provide a public Cmd() func. This function should
@@ -31,6 +32,10 @@ func Cmd() *command.Cmd {
 	// value is a member of the command.Runner.
 	cmd.Flags.BoolVar(&runner.verbose, "verbose", false, "Produce verbose output")
 
+	// If we wrap flag.Required(...) around the usage string, Cmd.Run(...)
+	// will fail if it is unspecified
+	cmd.Flags.StringVar(&runner.thing, "thing", "", flags.Required("The thing"))
+
 	return cmd
 }
 
@@ -39,6 +44,7 @@ func Cmd() *command.Cmd {
 // in the Cmd() function.
 type runner struct {
 	verbose bool
+	thing   string
 }
 
 // Run does the actual work, based on state provided by flags, and the
@@ -66,7 +72,7 @@ func (f *runner) Run(cmd *command.Cmd, args []string) command.CmdErr {
 		fmt.Print(" = ")
 	}
 
-	fmt.Println(sum)
+	fmt.Printf(`The thing: %s, the sum: %d`, f.thing, sum)
 
 	// In this case, there was no error. Errors should be returned via the
 	// cmd.Error or cmd.Errorf methods.
