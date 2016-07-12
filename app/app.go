@@ -16,7 +16,7 @@ type App struct {
 // Usage produces the default implementation of Usage for this App, which
 // prints tab-formatted output to STDOUT.
 func (a App) Usage() Usage {
-	return newUsage(a, os.Stdout, -1)
+	return newUsage(a, os.Stdout, widthFromTerm)
 }
 
 func (a App) Version() Version {

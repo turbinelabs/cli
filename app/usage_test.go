@@ -105,14 +105,16 @@ Run "foo help <command>" for more details on a specific command.
     1.0
 
 `+bold("COMMANDS")+`
-    `+ul("foo")+`     foo the
+    `+ul("foo")+`
+            foo the
             thing
 
     `+ul("barzywarzyflarzy")+`
             bar the
             thing
 
-    `+ul("baz")+`     baz the
+    `+ul("baz")+`
+            baz the
             thing
 
 `+bold("GLOBAL OPTIONS")+`

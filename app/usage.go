@@ -19,6 +19,8 @@ import (
 	"github.com/turbinelabs/cli/flags"
 )
 
+const widthFromTerm = -1
+
 // Usage provides methods to output global and command-specific usage of an App.
 // No specific output format or destination is specified by the interface.
 type Usage interface {
@@ -170,7 +172,7 @@ func (u usageT) option(f *flag.Flag) string {
 
 func (u usageT) cmd(name, desc string) string {
 	cleanDesc := u.clean(12, desc)
-	if len(name) < 7 && len(cleanDesc) < termWidth() {
+	if len(name) < 7 && len(cleanDesc) < u.width {
 		return fmt.Sprintf("    %s%s%s", ul(name), strings.Repeat(" ", 8-len(name)), cleanDesc[12:])
 	} else {
 		return fmt.Sprintf("    %s\n%s", ul(name), cleanDesc)
@@ -203,7 +205,7 @@ func (u usageT) cmdHelp(name string) string {
 }
 
 func newUsage(a App, wr io.Writer, width int) Usage {
-	if width == -1 {
+	if width == widthFromTerm {
 		width = termWidth()
 	}
 	tabWriter := new(tabwriter.Writer)
