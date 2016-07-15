@@ -12,9 +12,9 @@ import (
 const requiredPrefix = "[REQUIRED] "
 
 // Required prefixes its argument with "[REQUIRED] " which, in addition from
-// documenting for the users of the `command.Cmd` on which the flag is declared
+// documenting for the users of the command.Cmd on which the flag is declared
 // that the argument is required, will also cause it to be checked when the
-// `Cmd`'s `Run` method is invoked.
+// Cmd's Run method is invoked.
 func Required(usage string) string {
 	return requiredPrefix + usage
 }
