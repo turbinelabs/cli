@@ -125,3 +125,17 @@ func TestVar(t *testing.T) {
 	}
 	testCase.run(t)
 }
+
+func TestScope(t *testing.T) {
+	fs := flag.NewFlagSet("scoping test", flag.PanicOnError)
+	underlying := NewPrefixedFlagSet(fs, "theprefix", "the-app-name")
+	pfs := underlying.Scope("scope", "scope-name")
+	assert.SameInstance(t, pfs.FlagSet, fs)
+	assert.Equal(t, pfs.prefix, "theprefix.scope.")
+	assert.Equal(t, pfs.descriptor, "scope-name")
+
+	pfs = underlying.Scope("scope.", "scope-name")
+	assert.SameInstance(t, pfs.FlagSet, fs)
+	assert.Equal(t, pfs.prefix, "theprefix.scope.")
+	assert.Equal(t, pfs.descriptor, "scope-name")
+}

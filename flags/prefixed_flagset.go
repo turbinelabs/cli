@@ -33,3 +33,11 @@ func (f *PrefixedFlagSet) mkUsage(usage string) string {
 func (f *PrefixedFlagSet) Var(value flag.Value, name string, usage string) {
 	f.FlagSet.Var(value, f.prefix+name, f.mkUsage(usage))
 }
+
+func (f *PrefixedFlagSet) Scope(prefix, descriptor string) *PrefixedFlagSet {
+	return NewPrefixedFlagSet(f.FlagSet, f.prefix+prefix, descriptor)
+}
+
+func (f *PrefixedFlagSet) Descriptor() string {
+	return f.descriptor
+}
