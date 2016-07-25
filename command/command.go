@@ -9,9 +9,6 @@ package command
 import (
 	"flag"
 	"fmt"
-	"strings"
-
-	"github.com/turbinelabs/cli/flags"
 )
 
 // A Runner represents the executable code associated with a Cmd. Typically
@@ -41,15 +38,6 @@ type Cmd struct {
 func (c *Cmd) Run() CmdErr {
 	if c.Runner == nil {
 		return c.Error("No Runner specified")
-	}
-
-	missing := flags.MissingRequired(&c.Flags)
-	if len(missing) != 0 {
-		errStrs := make([]string, len(missing))
-		for _, name := range missing {
-			errStrs = append(errStrs, fmt.Sprintf("  %s is required", name))
-		}
-		return c.BadInputf("\n%s", strings.Join(errStrs, "\n"))
 	}
 
 	return c.Runner.Run(c, c.Flags.Args())

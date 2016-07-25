@@ -16,6 +16,26 @@ import (
 	"github.com/turbinelabs/test/assert"
 )
 
+// func TestCmdRunRequiredMissing(t *testing.T) {
+// 	var fs flag.FlagSet
+// 	fs.String("bleh", "", flags.Required("bleh"))
+// 	fs.Parse([]string{"foo"})
+
+// 	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
+// 	err := cmd.Run()
+// 	assert.Equal(t, err, CmdErr{&cmd, CmdErrCodeBadInput, "bar: \n\n  bleh is required"})
+// }
+
+// func TestCmdRunRequiredProvided(t *testing.T) {
+// 	var fs flag.FlagSet
+// 	fs.String("bleh", "", flags.Required("bleh"))
+// 	fs.Parse([]string{"--bleh=blar", "foo"})
+
+// 	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
+// 	err := cmd.Run()
+// 	assert.Equal(t, err, CmdErr{&cmd, CmdErrCodeError, "bar: baz"})
+// }
+
 func TestValidate(t *testing.T) {
 	barCmd := &command.Cmd{Name: "bar"}
 	barBazCmd := &command.Cmd{Name: "bar-baz"}
@@ -126,6 +146,15 @@ func TestCLI(t *testing.T) {
 			errCode:        command.CmdErrCodeBadInput,
 			err:            "foo: flag provided but not defined: -bogus\n\n",
 		},
+		// required arg test
+		{
+			args:               [][]string{{"baz"}},
+			cmdType:            singleCmd,
+			cmdFillFlagsCalled: true,
+			usageCmdCalled:     true,
+			errCode:            command.CmdErrCodeBadInput,
+			err:                "foo: \n  --bar is a required flag\n\n",
+		},
 		// -help tests
 		{
 			args:               [][]string{{"-help"}, {"-h"}},
@@ -172,7 +201,7 @@ func TestCLI(t *testing.T) {
 			fillFlagsCalled:   true,
 			usageGlobalCalled: true,
 			errCode:           command.CmdErrCodeBadInput,
-			err:               "no command specified\n\n",
+			err:               "no command specified\n--bar is a required global flag\n\n",
 		},
 		{
 			args:              [][]string{{"bogus"}, {"bogus", "-version"}},
@@ -180,7 +209,7 @@ func TestCLI(t *testing.T) {
 			fillFlagsCalled:   true,
 			usageGlobalCalled: true,
 			errCode:           command.CmdErrCodeBadInput,
-			err:               "unknown command: \"bogus\"\n\n",
+			err:               "unknown command: \"bogus\"\n--bar is a required global flag\n\n",
 		},
 		{
 			args:              [][]string{{"-bogus"}},
@@ -196,6 +225,16 @@ func TestCLI(t *testing.T) {
 			usageCmdCalled:  true,
 			errCode:         command.CmdErrCodeBadInput,
 			err:             "foo: flag provided but not defined: -bogus\n\n",
+		},
+		// missing flag test
+		{
+			args:               [][]string{{"foo", "baz"}},
+			cmdType:            multipleCmds,
+			fillFlagsCalled:    true,
+			cmdFillFlagsCalled: true,
+			usageCmdCalled:     true,
+			errCode:            command.CmdErrCodeBadInput,
+			err:                "foo: \n  --bar is a required global flag\n  --bar is a required flag\n\n",
 		},
 		// -help tests
 		{
@@ -300,8 +339,8 @@ func TestCLI(t *testing.T) {
 
 					fooCmd := c.command("foo")
 
-					c.flags.BoolVar(&cliBarFlag, "bar", false, "")
-					fooCmd.Flags.BoolVar(&cmdBarFlag, "bar", false, "")
+					c.flags.BoolVar(&cliBarFlag, "bar", false, flags.Required(""))
+					fooCmd.Flags.BoolVar(&cmdBarFlag, "bar", false, flags.Required(""))
 
 					mocks.os.EXPECT().Args().Return(append([]string{c.name}, args...))
 

@@ -26,6 +26,8 @@ const VersionSummary = "Print the version and exit"
 type CLI interface {
 	// Flags returns a pointer to the global flags for the CLI
 	Flags() *flag.FlagSet
+	// Set the flags
+	SetFlags(*flag.FlagSet)
 
 	// Main serves as the main() function for the CLI. It will parse
 	// the command-line arguments and flags, call the appropriate sub-command,
@@ -180,10 +182,14 @@ func (cli *cli) Flags() *flag.FlagSet {
 	return &cli.flags
 }
 
+func (cli *cli) SetFlags(fs *flag.FlagSet) {
+	cli.flags = *fs
+}
+
 func (cli *cli) mainOrCmdErr() command.CmdErr {
 	// if we have a single command, it is implicitly the first argument
 	if len(cli.commands) == 1 {
-		return cli.cmdOrCmdErr(cli.commands[0], cli.os.Args())
+		return cli.cmdOrCmdErr(cli.commands[0], cli.os.Args(), []string{})
 	}
 
 	args, err := cli.parseGlobalFlags()
@@ -199,6 +205,8 @@ func (cli *cli) mainOrCmdErr() command.CmdErr {
 		return command.NoError()
 	}
 
+	missingErrs := checkRequired(&cli.flags, []string{}, "global ")
+
 	if len(args) < 1 {
 		// <app> help
 		// <app> -help
@@ -208,15 +216,16 @@ func (cli *cli) mainOrCmdErr() command.CmdErr {
 			return command.NoError()
 		}
 
-		return command.BadInput("no command specified")
+		errs := append([]string{"no command specified"}, missingErrs...)
+		return command.BadInput(strings.Join(errs, "\n"))
 	}
 
 	// determine which Cmd should be run, parse args
 	if cmd := cli.command(args[0]); cmd != nil {
-		return cli.cmdOrCmdErr(cmd, args)
+		return cli.cmdOrCmdErr(cmd, args, missingErrs)
 	}
 
-	return cli.handleBadCmd(args)
+	return cli.handleBadCmd(args, missingErrs)
 }
 
 func (cli *cli) parseGlobalFlags() ([]string, error) {
@@ -247,7 +256,7 @@ func (cli *cli) parseGlobalFlags() ([]string, error) {
 	return args, nil
 }
 
-func (cli *cli) cmdOrCmdErr(cmd *command.Cmd, args []string) command.CmdErr {
+func (cli *cli) cmdOrCmdErr(cmd *command.Cmd, args []string, missingErrs []string) command.CmdErr {
 	// only add help flag if not already present
 	var cmdHelpFlag bool
 	addHelpFlagIfMissing(&cmd.Flags, &cmdHelpFlag)
@@ -281,11 +290,16 @@ func (cli *cli) cmdOrCmdErr(cmd *command.Cmd, args []string) command.CmdErr {
 		return command.NoError()
 	}
 
+	missingErrs = checkRequired(&cmd.Flags, missingErrs, "")
+	if len(missingErrs) > 0 {
+		return cmd.BadInputf("\n  %s", strings.Join(missingErrs, "\n  "))
+	}
+
 	// run the command
 	return cmd.Run()
 }
 
-func (cli *cli) handleBadCmd(args []string) command.CmdErr {
+func (cli *cli) handleBadCmd(args []string, validationErrs []string) command.CmdErr {
 	// <app> help <unknown command>
 	// <app> -help <unknown command>
 	// <app> -h <unknown command>
@@ -310,7 +324,8 @@ func (cli *cli) handleBadCmd(args []string) command.CmdErr {
 		return command.NoError()
 	}
 
-	return command.BadInputf("unknown command: %q", args[0])
+	errs := append([]string{fmt.Sprintf("unknown command: %q", args[0])}, validationErrs...)
+	return command.BadInput(strings.Join(errs, "\n"))
 }
 
 func (cli *cli) command(name string) *command.Cmd {
@@ -332,6 +347,16 @@ func (cli *cli) commandUsage(cmd *command.Cmd) {
 
 func (cli *cli) stderr(msg string) {
 	fmt.Fprint(cli.os.Stderr(), msg)
+}
+
+func checkRequired(fs *flag.FlagSet, errStrs []string, prefix string) []string {
+	missing := flags.MissingRequired(fs)
+	if len(missing) != 0 {
+		for _, name := range missing {
+			errStrs = append(errStrs, fmt.Sprintf("--%s is a required %sflag", name, prefix))
+		}
+	}
+	return errStrs
 }
 
 func quietParse(fs *flag.FlagSet, args []string) error {
