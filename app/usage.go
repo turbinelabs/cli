@@ -1,5 +1,7 @@
 package app
 
+//go:generate mockgen -source $GOFILE -destination mock_$GOFILE -package $GOPACKAGE
+
 import (
 	"bytes"
 	"flag"
@@ -26,9 +28,10 @@ const widthFromTerm = -1
 type Usage interface {
 	// Global outputs the global usage for an App, based on the provided
 	// command.Cmds and flag.FlagSet
-	Global(cmds []*command.Cmd, fs *flag.FlagSet, flagsFromEnv map[string]string)
-	// Command outputs the usage for the given command.Cmd
-	Command(cmd *command.Cmd, flagsFromEnv map[string]string)
+	Global(cmds []*command.Cmd, flagsFromEnv flags.FromEnv)
+	// Command outputs the usage for the given command.Cmd, including global and
+	// command flags.
+	Command(cmd *command.Cmd, globalFlagsFromEnv flags.FromEnv, cmdFlagsFromEnv flags.FromEnv)
 }
 
 // The default implementation of Usage for this App, prints tab-formatted
@@ -49,29 +52,30 @@ const (
 {{bold "NAME"}}
 {{cleanf 4 "%s - %s" .Executable .Description}}
 {{bold "USAGE"}}
-{{cleanf 4 "%s [global options] <command> [command options] [arguments...]" .Executable}}
+{{cleanf 4 "%s [GLOBAL OPTIONS] <command> [COMMAND OPTIONS] [arguments...]" .Executable}}
 {{bold "VERSION"}}
 {{clean 4 .Version}}
 {{bold "COMMANDS"}}{{range .Commands}}
 {{cmd .Name .Summary}}{{end}}
-{{bold "GLOBAL OPTIONS"}}{{range .Flags}}{{option .}}{{end}}
-{{optionsText "Global options" .EnvPrefix .FlagsFromEnv}}
-{{cmdHelp .Executable}}`
+{{bold "GLOBAL OPTIONS"}}{{range .GlobalFlags.AllFlags}}{{option .}}{{end}}
+{{optionsText "Global options" .GlobalFlags.Prefix .GlobalFlags.Filled}}
+{{- cmdHelp .Executable}}
+`
 	commandUsageTemplateStr = `
 {{bold "NAME"}}
 {{if .HasSubCmds}}{{cleanf 4 "%s - %s" .Cmd.Name .Cmd.Summary}}
 {{else}}{{cleanf 4 "%s - %s" .Executable .Cmd.Summary}}
 {{end}}{{bold "USAGE"}}
-{{if .HasSubCmds}}{{cleanf 4 "%s %s %s" .Executable .Cmd.Name .Cmd.Usage}}
+{{if .HasSubCmds}}{{cleanf 4 "%s [GLOBAL OPTIONS] %s %s" .Executable .Cmd.Name .Cmd.Usage}}
 {{else}}{{cleanf 4 "%s %s" .Executable .Cmd.Usage}}
 {{end}}{{bold "VERSION"}}
 {{clean 4 .Version}}
 {{bold "DESCRIPTION"}}
 {{clean 4 .Cmd.Description}}
-{{if .CmdFlags}}{{bold "OPTIONS"}}{{range .CmdFlags}}{{option .}}{{end}}
-{{optionsText "Options" .EnvPrefix .FlagsFromEnv}}{{end}}
-{{- if .HasSubCmds}}
-{{globalHelp .Executable}}{{end}}`
+{{if .HasSubCmds}}{{bold "GLOBAL OPTIONS"}}{{range .GlobalFlags.AllFlags}}{{option .}}{{end}}
+{{optionsText "Global options" .GlobalFlags.Prefix .GlobalFlags.Filled}}{{end -}}
+{{if .CmdFlags}}{{bold "OPTIONS"}}{{range .CmdFlags.AllFlags}}{{option .}}{{end}}
+{{optionsText "Options" .CmdFlags.Prefix .CmdFlags.Filled}}{{end}}`
 )
 
 func notGraphic(r rune) bool {
@@ -179,19 +183,24 @@ func (u usageT) cmd(name, desc string) string {
 	}
 }
 
-func (u usageT) optionsText(prefix, envKey string, flagsFromEnv map[string]string) string {
-	format := `%s can also be configured via upper-case environment variables prefixed with "%s"
-For example, "--some-flag" --> "%sSOME_FLAG". Command-line flags take precidence over environment variables.`
+func (u usageT) optionsText(prefix string, envKey string, flagsFromEnv map[string]string) string {
+	format := `%s can also be configured via upper-case, underscore-delimeted environment variables
+prefixed with "%s". For example, "--some-flag" becomes "%sSOME_FLAG". Command-line flags take
+precedence over environment variables.`
+
 	if len(flagsFromEnv) > 0 {
-		format += " Options currently configured from the Environment:"
+		format += "\n\nOptions currently configured from the Environment:"
 	}
-	result := u.cleanf(0, format, prefix, envKey, envKey) + "\n"
+	result := u.cleanf(4, format, prefix, envKey, envKey) + "\n"
 
 	lines := make([]string, len(flagsFromEnv))
 	for key, value := range flagsFromEnv {
-		lines = append(lines, u.cleanf(4, "%s=%s", key, value))
+		lines = append(lines, u.cleanf(8, "%s=%s", key, value))
 	}
 	sort.Strings(lines)
+	if len(lines) > 0 {
+		lines = append(lines, "\n")
+	}
 
 	return result + strings.Join(lines, "")
 }
@@ -234,20 +243,16 @@ func newUsage(a App, wr io.Writer, width int) Usage {
 	return u
 }
 
-func (u usageT) Global(cmds []*command.Cmd, fs *flag.FlagSet, flagsFromEnv map[string]string) {
+func (u usageT) Global(cmds []*command.Cmd, flagsFromEnv flags.FromEnv) {
 	u.globalUsageTemplate.Execute(u.tabWriter, struct {
-		Executable   string
-		EnvPrefix    string
-		Commands     []*command.Cmd
-		Flags        []*flag.Flag
-		FlagsFromEnv map[string]string
-		Description  string
-		Version      string
+		Executable  string
+		Commands    []*command.Cmd
+		GlobalFlags flags.FromEnv
+		Description string
+		Version     string
 	}{
 		u.app.Name,
-		flags.EnvKey(u.app.Name, ""),
 		cmds,
-		flags.Enumerate(fs),
 		flagsFromEnv,
 		u.app.Description,
 		u.app.VersionString,
@@ -255,22 +260,24 @@ func (u usageT) Global(cmds []*command.Cmd, fs *flag.FlagSet, flagsFromEnv map[s
 	u.tabWriter.Flush()
 }
 
-func (u usageT) Command(cmd *command.Cmd, flagsFromEnv map[string]string) {
+func (u usageT) Command(
+	cmd *command.Cmd,
+	globalFlagsFromEnv flags.FromEnv,
+	cmdFlagsFromEnv flags.FromEnv,
+) {
 	u.commandUsageTemplate.Execute(u.tabWriter, struct {
-		Executable   string
-		EnvPrefix    string
-		HasSubCmds   bool
-		Cmd          *command.Cmd
-		CmdFlags     []*flag.Flag
-		FlagsFromEnv map[string]string
-		Version      string
+		Executable  string
+		HasSubCmds  bool
+		Cmd         *command.Cmd
+		GlobalFlags flags.FromEnv
+		CmdFlags    flags.FromEnv
+		Version     string
 	}{
 		u.app.Name,
-		flags.EnvKey(u.app.Name, ""),
 		u.app.HasSubCmds,
 		cmd,
-		flags.Enumerate(&cmd.Flags),
-		flagsFromEnv,
+		globalFlagsFromEnv,
+		cmdFlagsFromEnv,
 		u.app.VersionString,
 	})
 	u.tabWriter.Flush()

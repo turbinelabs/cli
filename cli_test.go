@@ -1,415 +1,355 @@
 package cli
 
 import (
-	"flag"
+	"bytes"
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+
+	"github.com/turbinelabs/cli/app"
 	"github.com/turbinelabs/cli/command"
+	"github.com/turbinelabs/cli/flags"
+	tbnos "github.com/turbinelabs/os"
 	"github.com/turbinelabs/test/assert"
 )
 
-type testRunner struct {
-	t      *testing.T
-	name   string
-	args   []string
-	cmdErr command.CmdErr
-	called int
+func TestValidate(t *testing.T) {
+	barCmd := &command.Cmd{Name: "bar"}
+	barBazCmd := &command.Cmd{Name: "bar-baz"}
+	fooCli := mkNew(app.App{Name: "foo"}, barCmd, barBazCmd)
+
+	assert.Nil(t, fooCli.Validate())
+
+	fooCli.Flags().Bool("bar-baz-blegga", false, "")
+	barCmd.Flags.Bool("baz.blegga", false, "")
+	barBazCmd.Flags.Bool("blegga", false, "")
+
+	wantErr := errors.New(`possible environment key collisions:
+  FOO_BAR_BAZ_BLEGGA: "foo -bar-baz-blegga", "foo bar -baz.blegga", "foo bar-baz -blegga"
+`)
+
+	assert.DeepEqual(t, fooCli.Validate(), wantErr)
 }
 
-type badInputTestCase struct {
-	args              []string
-	msg               string
-	fillFlagsCalled   int
-	usageGlobalCalled int
-	usageCmdCalled    int
-}
+type cmdType string
 
-func (r *testRunner) Run(cmd *command.Cmd, args []string) command.CmdErr {
-	assert.Equal(r.t, cmd.Name, r.name)
-	assert.DeepEqual(r.t, args, r.args)
-	r.called++
-	return r.cmdErr
-}
-
-type cliTestMock struct {
-	t    *testing.T
-	cmds []*command.Cmd
-	args []string
-
-	wantUsageFlagSet    *flag.FlagSet
-	wantFlagsFromEnv    map[string]string
-	wantUsageGlobalCmds []*command.Cmd
-	wantUsageCmd        *command.Cmd
-	wantFillFlagSets    []*flag.FlagSet
-	wantMsg             string
-	wantCode            int
-
-	usageGlobalCalled  int
-	usageCmdCalled     int
-	versionPrintCalled int
-	fillFlagsCalled    int
-	stderrCalled       int
-	exitCalled         int
-
-	barFlag bool
-}
-
-func (m *cliTestMock) Global(cmds []*command.Cmd, fs *flag.FlagSet, ffe map[string]string) {
-	assert.DeepEqual(m.t, cmds, m.wantUsageGlobalCmds)
-	assert.DeepEqual(m.t, fs, m.wantUsageFlagSet)
-	assert.Equal(m.t, fmt.Sprintf("%p", ffe), fmt.Sprintf("%p", m.wantFlagsFromEnv))
-	m.usageGlobalCalled++
-}
-
-func (m *cliTestMock) Command(cmd *command.Cmd, ffe map[string]string) {
-	assert.Equal(m.t, cmd, m.wantUsageCmd)
-	assert.Equal(m.t, fmt.Sprintf("%p", ffe), fmt.Sprintf("%p", m.wantFlagsFromEnv))
-	m.usageCmdCalled++
-}
-
-func (m *cliTestMock) Print() {
-	m.versionPrintCalled++
-}
-
-func (m *cliTestMock) fill(fs *flag.FlagSet, ffe map[string]string) {
-	if len(m.wantFillFlagSets) == 0 {
-		m.t.Errorf("unexpected flagset: %v", fs)
-		return
-	}
-
-	want := m.wantFillFlagSets[0]
-	if len(m.wantFillFlagSets) > 0 {
-		m.wantFillFlagSets = m.wantFillFlagSets[1:]
-	}
-
-	assert.DeepEqual(m.t, fs, want)
-	assert.Equal(m.t, fmt.Sprintf("%p", ffe), fmt.Sprintf("%p", m.wantFlagsFromEnv))
-
-	m.fillFlagsCalled++
-}
-
-func (m *cliTestMock) osArgs() []string {
-	return append([]string{"appname"}, m.args...)
-}
-
-func (m *cliTestMock) stderr(msg string) {
-	assert.Equal(m.t, msg, m.wantMsg)
-	m.stderrCalled++
-}
-
-func (m *cliTestMock) exit(code int) {
-	assert.Equal(m.t, code, m.wantCode)
-	m.exitCalled++
-}
-
-func newCliAndMock(t *testing.T, hasSubs bool) (*cli, *cliTestMock) {
-	cmds := []*command.Cmd{{
-		Name:   "foo",
-		Runner: &testRunner{t: t, name: "foo", args: []string{}, cmdErr: command.NoError()},
-	}}
-
-	if hasSubs {
-		cmds = append(cmds, &command.Cmd{
-			Name:   "bar",
-			Runner: &testRunner{t: t, name: "bar", args: []string{}, cmdErr: command.Error("Gah!")},
-		})
-	}
-
-	wantFlagsFromEnv := map[string]string{}
-
-	m := &cliTestMock{t: t, cmds: cmds, wantFlagsFromEnv: wantFlagsFromEnv}
-
-	cli := &cli{
-		commands: m.cmds,
-		usage:    m,
-		version:  m,
-
-		fillFlagsFromEnv: m.fill,
-		osArgs:           m.osArgs,
-		stderr:           m.stderr,
-		exit:             m.exit,
-
-		flagsFromEnv: wantFlagsFromEnv,
-	}
-
-	m.wantUsageGlobalCmds = cli.commands
-	m.wantUsageFlagSet = &cli.flags
-	m.wantFillFlagSets = []*flag.FlagSet{&cli.flags}
-
-	return cli, m
-}
-
-var (
-	subBadInputTestCases = []badInputTestCase{
-		{nil, "no command specified\n\n", 1, 1, 0},
-		{[]string{}, "no command specified\n\n", 1, 1, 0},
-		{[]string{"bogus"}, "unknown command: \"bogus\"\n\n", 1, 1, 0},
-		{[]string{"bogus", "-version"}, "unknown command: \"bogus\"\n\n", 1, 1, 0},
-		{[]string{"-bogus"}, "flag provided but not defined: -bogus\n\n", 0, 1, 0},
-		{[]string{"foo", "-bogus"}, "foo: flag provided but not defined: -bogus\n\n", 1, 0, 1},
-	}
-
-	subGlobalHelpTestCases = [][]string{
-		{"help"},
-		{"-help"},
-		{"-h"},
-		{"help", "bogus"},
-		{"-help", "bogus"},
-		{"-h", "bogus"},
-		{"bogus", "-help"},
-		{"bogus", "-h"},
-	}
-
-	subCmdHelpTestCases = [][]string{
-		{"help", "foo"},
-		{"-help", "foo"},
-		{"-h", "foo"},
-		{"foo", "-help"},
-		{"foo", "-h"},
-	}
-
-	subVersionTestCases = [][]string{
-		{"version"},
-		{"-version"},
-		{"-v"},
-		{"version", "foo"},
-		{"-version", "foo"},
-		{"-v", "foo"},
-		{"version", "bogus"},
-		{"-version", "bogus"},
-		{"-v", "bogus"},
-		{"foo", "-version"},
-		{"foo", "-v"},
-	}
-
-	badInputTestCases = []badInputTestCase{
-		{[]string{"-bogus"}, "foo: flag provided but not defined: -bogus\n\n", 0, 0, 1},
-	}
-
-	helpTestCases = [][]string{
-		{"-help"},
-		{"-h"},
-	}
-
-	versionTestCases = [][]string{
-		{"-version"},
-		{"-v"},
-	}
+const (
+	singleCmd    cmdType = "single"
+	multipleCmds         = "multiple"
 )
 
-func TestBadInput(t *testing.T) {
-	cli, mock := newCliAndMock(t, false)
-	mock.args = []string{"-bogus"}
-	mock.wantCode = 2
-	mock.wantMsg = "foo: flag provided but not defined: -bogus\n\n"
-	mock.wantUsageCmd = mock.cmds[0]
-
-	cli.Main()
-	assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 0)
-	assert.Equal(t, mock.versionPrintCalled, 0)
-	assert.Equal(t, mock.fillFlagsCalled, 0)
-	assert.Equal(t, mock.usageGlobalCalled, 0)
-	assert.Equal(t, mock.usageCmdCalled, 1)
-	assert.Equal(t, mock.stderrCalled, 1)
-	assert.Equal(t, mock.exitCalled, 1)
+type cliTestMocks struct {
+	t                  testing.TB
+	fooRunner          *command.MockRunner
+	barRunner          *command.MockRunner
+	usage              *app.MockUsage
+	version            *app.MockVersion
+	flagsFromEnv       *flags.MockFromEnv
+	cmdFooFlagsFromEnv *flags.MockFromEnv
+	cmdBarFlagsFromEnv *flags.MockFromEnv
+	os                 *tbnos.MockOS
+	stderr             *bytes.Buffer
+	finish             func()
 }
 
-func TestHelp(t *testing.T) {
-	for _, tc := range helpTestCases {
-		cli, mock := newCliAndMock(t, false)
-		mock.args = tc
+func newCLIAndMocks(t testing.TB, cType cmdType) (*cli, *cliTestMocks) {
+	ctrl := gomock.NewController(assert.Tracing(t))
 
-		mock.wantCode = 0
-		mock.wantFillFlagSets = []*flag.FlagSet{&mock.cmds[0].Flags}
-		mock.wantUsageCmd = mock.cmds[0]
+	fooRunner := command.NewMockRunner(ctrl)
+	barRunner := command.NewMockRunner(ctrl)
 
-		cli.Main()
-		assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 0)
-		assert.Equal(t, mock.versionPrintCalled, 0)
-		assert.Equal(t, mock.fillFlagsCalled, 1)
-		assert.Equal(t, mock.usageGlobalCalled, 0)
-		assert.Equal(t, mock.usageCmdCalled, 1)
-		assert.Equal(t, mock.stderrCalled, 0)
-		assert.Equal(t, mock.exitCalled, 1)
+	cmds := []*command.Cmd{{Name: "foo", Runner: fooRunner}}
+
+	if cType == multipleCmds {
+		cmds = append(cmds, &command.Cmd{Name: "bar", Runner: barRunner})
 	}
-}
 
-func TestVersion(t *testing.T) {
-	for _, tc := range versionTestCases {
-		cli, mock := newCliAndMock(t, false)
-		mock.args = tc
-
-		mock.wantCode = 0
-		mock.wantFillFlagSets = []*flag.FlagSet{&mock.cmds[0].Flags}
-
-		cli.Main()
-		assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 0)
-		assert.Equal(t, mock.versionPrintCalled, 1)
-		assert.Equal(t, mock.fillFlagsCalled, 1)
-		assert.Equal(t, mock.usageGlobalCalled, 0)
-		assert.Equal(t, mock.usageCmdCalled, 0)
-		assert.Equal(t, mock.stderrCalled, 0)
-		assert.Equal(t, mock.exitCalled, 1)
+	mocks := &cliTestMocks{
+		t:                  t,
+		fooRunner:          fooRunner,
+		barRunner:          barRunner,
+		usage:              app.NewMockUsage(ctrl),
+		version:            app.NewMockVersion(ctrl),
+		flagsFromEnv:       flags.NewMockFromEnv(ctrl),
+		cmdFooFlagsFromEnv: flags.NewMockFromEnv(ctrl),
+		cmdBarFlagsFromEnv: flags.NewMockFromEnv(ctrl),
+		os:                 tbnos.NewMockOS(ctrl),
+		stderr:             &bytes.Buffer{},
+		finish:             ctrl.Finish,
 	}
+
+	cli := &cli{
+		commands: cmds,
+		name:     "blar",
+		usage:    mocks.usage,
+		version:  mocks.version,
+
+		flagsFromEnv: mocks.flagsFromEnv,
+		cmdFlagsFromEnv: map[string]flags.FromEnv{
+			"foo": mocks.cmdFooFlagsFromEnv,
+			"bar": mocks.cmdBarFlagsFromEnv,
+		},
+
+		os: mocks.os,
+	}
+
+	return cli, mocks
 }
 
-func TestNoError(t *testing.T) {
-	cli, mock := newCliAndMock(t, false)
-	mock.args = []string{"-bar", "baz"}
-	mock.cmds[0].Flags.BoolVar(&mock.barFlag, "bar", false, "")
-	mock.cmds[0].Runner.(*testRunner).args = []string{"baz"}
+func TestCLI(t *testing.T) {
+	for _, tc := range []struct {
+		args               [][]string
+		cmdType            cmdType
+		cliBarFlagValue    bool
+		cmdBarFlagValue    bool
+		fillFlagsCalled    bool
+		cmdFillFlagsCalled bool
+		usageCmdCalled     bool
+		usageGlobalCalled  bool
+		versionCalled      bool
+		runnerCalled       bool
+		cmdErrMessage      string
+		errCode            command.CmdErrCode
+		err                string
+	}{
+		//
+		// SINGLE COMMAND TESTS
+		//
+		// bad argument tests
+		{
+			args:           [][]string{{"-bogus"}},
+			cmdType:        singleCmd,
+			usageCmdCalled: true,
+			errCode:        command.CmdErrCodeBadInput,
+			err:            "foo: flag provided but not defined: -bogus\n\n",
+		},
+		// -help tests
+		{
+			args:               [][]string{{"-help"}, {"-h"}},
+			cmdType:            singleCmd,
+			cmdFillFlagsCalled: true,
+			usageCmdCalled:     true,
+			errCode:            command.CmdErrCodeNoError,
+		},
+		// -version tests
+		{
+			args:               [][]string{{"-version"}, {"-v"}},
+			cmdType:            singleCmd,
+			cmdFillFlagsCalled: true,
+			versionCalled:      true,
+			errCode:            command.CmdErrCodeNoError,
+		},
+		// cmd success
+		{
+			args:               [][]string{{"-bar", "baz"}},
+			cmdType:            singleCmd,
+			cmdBarFlagValue:    true,
+			cmdFillFlagsCalled: true,
+			runnerCalled:       true,
+			errCode:            command.CmdErrCodeNoError,
+		},
+		// cmd err
+		{
+			args:               [][]string{{"-bar", "baz"}},
+			cmdType:            singleCmd,
+			cmdBarFlagValue:    true,
+			cmdFillFlagsCalled: true,
+			runnerCalled:       true,
+			errCode:            command.CmdErrCodeError,
+			cmdErrMessage:      "Gah!",
+			err:                "foo: Gah!\n\n",
+		},
+		//
+		// MULTIPLE COMMAND TESTS
+		//
+		// bad argument tests
+		{
+			args:              [][]string{nil, {}},
+			cmdType:           multipleCmds,
+			fillFlagsCalled:   true,
+			usageGlobalCalled: true,
+			errCode:           command.CmdErrCodeBadInput,
+			err:               "no command specified\n\n",
+		},
+		{
+			args:              [][]string{{"bogus"}, {"bogus", "-version"}},
+			cmdType:           multipleCmds,
+			fillFlagsCalled:   true,
+			usageGlobalCalled: true,
+			errCode:           command.CmdErrCodeBadInput,
+			err:               "unknown command: \"bogus\"\n\n",
+		},
+		{
+			args:              [][]string{{"-bogus"}},
+			cmdType:           multipleCmds,
+			usageGlobalCalled: true,
+			errCode:           command.CmdErrCodeBadInput,
+			err:               "flag provided but not defined: -bogus\n\n",
+		},
+		{
+			args:            [][]string{{"foo", "-bogus"}},
+			cmdType:         multipleCmds,
+			fillFlagsCalled: true,
+			usageCmdCalled:  true,
+			errCode:         command.CmdErrCodeBadInput,
+			err:             "foo: flag provided but not defined: -bogus\n\n",
+		},
+		// -help tests
+		{
+			args: [][]string{
+				{"help"},
+				{"-help"},
+				{"-h"},
+				{"help", "bogus"},
+				{"-help", "bogus"},
+				{"-h", "bogus"},
+				{"bogus", "-help"},
+				{"bogus", "-h"},
+			},
+			cmdType:           multipleCmds,
+			fillFlagsCalled:   true,
+			usageGlobalCalled: true,
+			errCode:           command.CmdErrCodeNoError,
+		},
+		{
+			args: [][]string{
+				{"help", "foo"},
+				{"-help", "foo"},
+				{"-h", "foo"},
+				{"foo", "-help"},
+				{"foo", "-h"},
+			},
+			cmdType:            multipleCmds,
+			fillFlagsCalled:    true,
+			cmdFillFlagsCalled: true,
+			usageCmdCalled:     true,
+			errCode:            command.CmdErrCodeNoError,
+		},
+		// -version tests
+		{
+			args: [][]string{
+				{"version"},
+				{"-version"},
+				{"-v"},
+				{"version", "foo"},
+				{"-version", "foo"},
+				{"-v", "foo"},
+				{"version", "bogus"},
+				{"-version", "bogus"},
+				{"-v", "bogus"},
+			},
+			cmdType:         multipleCmds,
+			fillFlagsCalled: true,
+			versionCalled:   true,
+			errCode:         command.CmdErrCodeNoError,
+		},
+		{
+			args: [][]string{
+				{"foo", "-version"},
+				{"foo", "-v"},
+			},
+			cmdType:            multipleCmds,
+			fillFlagsCalled:    true,
+			cmdFillFlagsCalled: true,
+			versionCalled:      true,
+			errCode:            command.CmdErrCodeNoError,
+		},
+		// command success
+		{
+			args:               [][]string{{"-bar", "foo", "-bar", "baz"}},
+			cmdType:            multipleCmds,
+			cliBarFlagValue:    true,
+			cmdBarFlagValue:    true,
+			fillFlagsCalled:    true,
+			cmdFillFlagsCalled: true,
+			runnerCalled:       true,
+			errCode:            command.CmdErrCodeNoError,
+		},
+		// command err
+		{
+			args:               [][]string{{"-bar", "foo", "-bar", "baz"}},
+			cmdType:            multipleCmds,
+			cliBarFlagValue:    true,
+			cmdBarFlagValue:    true,
+			cmdFillFlagsCalled: true,
+			fillFlagsCalled:    true,
+			runnerCalled:       true,
+			errCode:            command.CmdErrCodeError,
+			cmdErrMessage:      "Gah!",
+			err:                "foo: Gah!\n\n",
+		},
+	} {
+		for _, args := range tc.args {
+			assert.Group(
+				fmt.Sprintf(
+					`TestCLI("%s", %s, %d)`,
+					strings.Join(args, " "),
+					tc.cmdType,
+					int(tc.errCode),
+				),
+				t,
+				func(g *assert.G) {
+					c, mocks := newCLIAndMocks(g, tc.cmdType)
+					defer mocks.finish()
 
-	mock.wantCode = 0
-	mock.wantFillFlagSets = []*flag.FlagSet{&mock.cmds[0].Flags}
+					cmdBarFlag := false
+					cliBarFlag := false
 
-	cli.Main()
-	assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 1)
-	assert.Equal(t, mock.versionPrintCalled, 0)
-	assert.Equal(t, mock.fillFlagsCalled, 1)
-	assert.Equal(t, mock.usageGlobalCalled, 0)
-	assert.Equal(t, mock.usageCmdCalled, 0)
-	assert.Equal(t, mock.stderrCalled, 0)
-	assert.Equal(t, mock.exitCalled, 1)
-}
+					fooCmd := c.command("foo")
 
-func TestError(t *testing.T) {
-	cli, mock := newCliAndMock(t, false)
-	mock.cmds[0].Runner.(*testRunner).cmdErr = mock.cmds[0].Error("das ist borken!")
+					c.flags.BoolVar(&cliBarFlag, "bar", false, "")
+					fooCmd.Flags.BoolVar(&cmdBarFlag, "bar", false, "")
 
-	mock.wantCode = 1
-	mock.wantMsg = "foo: das ist borken!\n\n"
-	mock.wantFillFlagSets = []*flag.FlagSet{&mock.cmds[0].Flags}
+					mocks.os.EXPECT().Args().Return(append([]string{c.name}, args...))
 
-	cli.Main()
-	assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 1)
-	assert.Equal(t, mock.versionPrintCalled, 0)
-	assert.Equal(t, mock.fillFlagsCalled, 1)
-	assert.Equal(t, mock.usageGlobalCalled, 0)
-	assert.Equal(t, mock.usageCmdCalled, 0)
-	assert.Equal(t, mock.stderrCalled, 1)
-	assert.Equal(t, mock.exitCalled, 1)
-}
+					if tc.fillFlagsCalled {
+						mocks.flagsFromEnv.EXPECT().Fill()
+					}
 
-func TestSubBadInput(t *testing.T) {
-	for _, tc := range subBadInputTestCases {
-		cli, mock := newCliAndMock(t, true)
+					if tc.cmdFillFlagsCalled {
+						mocks.cmdFooFlagsFromEnv.EXPECT().Fill()
+					}
 
-		mock.args = tc.args
-		mock.wantCode = 2
-		mock.wantMsg = tc.msg
-		if tc.fillFlagsCalled > 0 {
-			mock.wantUsageCmd = mock.cmds[0]
+					if tc.usageCmdCalled {
+						mocks.usage.EXPECT().Command(
+							fooCmd,
+							mocks.flagsFromEnv,
+							mocks.cmdFooFlagsFromEnv,
+						)
+					}
+
+					if tc.usageGlobalCalled {
+						mocks.usage.EXPECT().Global(c.commands, mocks.flagsFromEnv)
+					}
+
+					if tc.versionCalled {
+						mocks.version.EXPECT().Print()
+					}
+
+					if tc.runnerCalled {
+						cmdErr := command.NoError()
+						if tc.cmdErrMessage != "" {
+							cmdErr = fooCmd.Error(tc.cmdErrMessage)
+						}
+						mocks.fooRunner.EXPECT().Run(fooCmd, []string{"baz"}).Return(cmdErr)
+					}
+
+					if tc.err != "" {
+						mocks.os.EXPECT().Stderr().Return(mocks.stderr)
+					}
+
+					mocks.os.EXPECT().Exit(int(tc.errCode))
+
+					c.Main()
+
+					assert.Equal(g, tc.cliBarFlagValue, cliBarFlag)
+					assert.Equal(g, tc.cmdBarFlagValue, cmdBarFlag)
+					assert.Equal(g, mocks.stderr.String(), tc.err)
+				},
+			)
 		}
-
-		cli.Main()
-		assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 0)
-		assert.Equal(t, mock.versionPrintCalled, 0)
-		assert.Equal(t, mock.fillFlagsCalled, tc.fillFlagsCalled)
-		assert.Equal(t, mock.usageGlobalCalled, tc.usageGlobalCalled)
-		assert.Equal(t, mock.usageCmdCalled, tc.usageCmdCalled)
-		assert.Equal(t, mock.stderrCalled, 1)
-		assert.Equal(t, mock.exitCalled, 1)
 	}
-}
-
-func TestSubGlobalHelp(t *testing.T) {
-	for _, tc := range subGlobalHelpTestCases {
-		cli, mock := newCliAndMock(t, true)
-		mock.args = tc
-
-		mock.wantCode = 0
-
-		cli.Main()
-		assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 0)
-		assert.Equal(t, mock.versionPrintCalled, 0)
-		assert.Equal(t, mock.fillFlagsCalled, 1)
-		assert.Equal(t, mock.usageGlobalCalled, 1)
-		assert.Equal(t, mock.usageCmdCalled, 0)
-		assert.Equal(t, mock.stderrCalled, 0)
-		assert.Equal(t, mock.exitCalled, 1)
-	}
-}
-
-func TestSubCmdHelp(t *testing.T) {
-	for _, tc := range subCmdHelpTestCases {
-		cli, mock := newCliAndMock(t, true)
-		mock.args = tc
-
-		mock.wantCode = 0
-		mock.wantFillFlagSets = []*flag.FlagSet{&cli.flags, &mock.cmds[0].Flags}
-		mock.wantUsageCmd = mock.cmds[0]
-
-		cli.Main()
-		assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 0)
-		assert.Equal(t, mock.versionPrintCalled, 0)
-		assert.Equal(t, mock.fillFlagsCalled, 2)
-		assert.Equal(t, mock.usageGlobalCalled, 0)
-		assert.Equal(t, mock.usageCmdCalled, 1)
-		assert.Equal(t, mock.stderrCalled, 0)
-		assert.Equal(t, mock.exitCalled, 1)
-	}
-}
-
-func TestSubVersion(t *testing.T) {
-	for _, tc := range subVersionTestCases {
-		cli, mock := newCliAndMock(t, true)
-		mock.args = tc
-
-		mock.wantCode = 0
-		if tc[0] == "foo" {
-			mock.wantFillFlagSets = []*flag.FlagSet{&cli.flags, &mock.cmds[0].Flags}
-		}
-
-		cli.Main()
-		assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 0)
-		assert.Equal(t, mock.versionPrintCalled, 1)
-		if tc[0] == "foo" {
-			assert.Equal(t, mock.fillFlagsCalled, 2)
-		} else {
-			assert.Equal(t, mock.fillFlagsCalled, 1)
-		}
-		assert.Equal(t, mock.usageGlobalCalled, 0)
-		assert.Equal(t, mock.usageCmdCalled, 0)
-		assert.Equal(t, mock.stderrCalled, 0)
-		assert.Equal(t, mock.exitCalled, 1)
-	}
-}
-
-func TestSubFoo(t *testing.T) {
-	cli, mock := newCliAndMock(t, true)
-	mock.args = []string{"foo", "-bar", "baz"}
-	mock.cmds[0].Flags.BoolVar(&mock.barFlag, "bar", false, "")
-	mock.cmds[0].Runner.(*testRunner).args = []string{"baz"}
-
-	mock.wantCode = 0
-	mock.wantFillFlagSets = []*flag.FlagSet{&cli.flags, &mock.cmds[0].Flags}
-
-	cli.Main()
-	assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 1)
-	assert.Equal(t, mock.versionPrintCalled, 0)
-	assert.Equal(t, mock.fillFlagsCalled, 2)
-	assert.Equal(t, mock.usageGlobalCalled, 0)
-	assert.Equal(t, mock.usageCmdCalled, 0)
-	assert.Equal(t, mock.stderrCalled, 0)
-	assert.Equal(t, mock.exitCalled, 1)
-}
-
-func TestSubFooError(t *testing.T) {
-	cli, mock := newCliAndMock(t, true)
-	mock.args = []string{"foo"}
-	mock.cmds[0].Runner.(*testRunner).cmdErr = mock.cmds[0].Error("das ist borken!")
-
-	mock.wantCode = 1
-	mock.wantMsg = "foo: das ist borken!\n\n"
-	mock.wantFillFlagSets = []*flag.FlagSet{&cli.flags, &mock.cmds[0].Flags}
-
-	cli.Main()
-	assert.Equal(t, mock.cmds[0].Runner.(*testRunner).called, 1)
-	assert.Equal(t, mock.versionPrintCalled, 0)
-	assert.Equal(t, mock.fillFlagsCalled, 2)
-	assert.Equal(t, mock.usageGlobalCalled, 0)
-	assert.Equal(t, mock.usageCmdCalled, 0)
-	assert.Equal(t, mock.stderrCalled, 1)
-	assert.Equal(t, mock.exitCalled, 1)
 }

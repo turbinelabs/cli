@@ -79,16 +79,32 @@ func (f *runner) Run(cmd *command.Cmd, args []string) command.CmdErr {
 	return command.NoError()
 }
 
+func mkSingleCmdCLI() cli.CLI {
+	// make a new CLI passing the version string and a command.Cmd
+	// while it's possible to add flags to the CLI, they are ignored; only the
+	// Cmd's flags are presented to the user.
+	return cli.New("1.0.2", Cmd())
+}
+
 // This example shows how to create a single-command CLI
 func Example_singleCommand() {
 	// this would be your main() function
 
-	// make a new CLI passing the version string and a command.Cmd
-	c := cli.New("1.0.2", Cmd())
-
-	// while it's possible to add flags to the CLI, they are ignored; only the
-	// Cmd's flags are presented to the user.
-
 	// run the Main function, which calls os.Exit with the appropriate exit status
-	c.Main()
+	mkSingleCmdCLI().Main()
 }
+
+// Add the following to your tests to validate that there are no collisions
+// between command flags:
+
+// package main
+
+// import (
+// 	"testing"
+
+// 	"github.com/turbinelabs/test/assert"
+// )
+
+// func TestCLI(t *testing.T) {
+// 	assert.Nil(t, mkCLI().Validate())
+// }

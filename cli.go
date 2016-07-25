@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +16,7 @@ import (
 	"github.com/turbinelabs/cli/app"
 	"github.com/turbinelabs/cli/command"
 	"github.com/turbinelabs/cli/flags"
+	tbnos "github.com/turbinelabs/os"
 )
 
 const HelpSummary = "Show a list of commands or help for one command"
@@ -24,28 +26,33 @@ const VersionSummary = "Print the version and exit"
 type CLI interface {
 	// Flags returns a pointer to the global flags for the CLI
 	Flags() *flag.FlagSet
+
 	// Main serves as the main() function for the CLI. It will parse
 	// the command-line arguments and flags, call the appropriate sub-command,
 	// and return exit status and output error messages as appropriate.
 	Main()
+
+	// Validate can be used to make sure the CLI is well-defined from within
+	// unit tests. In particular it will validate that no two flags exist with
+	// the same environment key. As a last-ditch effort, Validate will be called
+	// at the start of Main.
+	Validate() error
 }
 
 type cli struct {
 	flags flag.FlagSet // The global FlagSet for the CLI
 
 	commands    []*command.Cmd
+	name        string
 	usage       app.Usage
 	version     app.Version
 	versionFlag bool
 	helpFlag    bool
 
-	// stub out some method calls for easier unit testing
-	fillFlagsFromEnv func(*flag.FlagSet, map[string]string)
-	osArgs           func() []string
-	stderr           func(string)
-	exit             func(int)
+	flagsFromEnv    flags.FromEnv
+	cmdFlagsFromEnv map[string]flags.FromEnv
 
-	flagsFromEnv map[string]string
+	os tbnos.OS
 }
 
 // New produces a CLI for the given command.Cmd
@@ -81,24 +88,77 @@ func NewWithSubCmds(
 }
 
 func mkNew(app app.App, commands ...*command.Cmd) CLI {
-	return &cli{
+	c := &cli{
 		commands: commands,
+		name:     app.Name,
 		usage:    app.Usage(),
 		version:  app.Version(),
 
-		fillFlagsFromEnv: func(fs *flag.FlagSet, flagsFromEnv map[string]string) {
-			flags.FillFromEnv(app.Name, fs, flagsFromEnv)
-		},
-
-		osArgs: func() []string { return os.Args },
-		stderr: func(msg string) { fmt.Fprint(os.Stderr, msg) },
-		exit:   os.Exit,
-
-		flagsFromEnv: map[string]string{},
+		os: tbnos.New(),
 	}
+
+	c.flagsFromEnv = flags.NewFromEnv(&c.flags, app.Name)
+
+	if len(commands) == 1 {
+		c.cmdFlagsFromEnv = map[string]flags.FromEnv{
+			app.Name: flags.NewFromEnv(&commands[0].Flags, app.Name),
+		}
+	} else {
+		c.cmdFlagsFromEnv = map[string]flags.FromEnv{}
+		for _, cmd := range commands {
+			c.cmdFlagsFromEnv[cmd.Name] = flags.NewFromEnv(&cmd.Flags, app.Name, cmd.Name)
+		}
+	}
+
+	return c
+}
+
+func (cli *cli) Validate() error {
+	seen := map[string]string{}
+	collisions := map[string][]string{}
+
+	// add top-level flags
+	for _, f := range flags.Enumerate(&cli.flags) {
+		seen[flags.EnvKey(cli.name, f.Name)] = fmt.Sprintf("%s -%s", cli.name, f.Name)
+	}
+
+	// add cmd-level flags
+	for _, cmd := range cli.commands {
+		for _, f := range flags.Enumerate(&cmd.Flags) {
+			envKey := flags.EnvKey(cli.name, cmd.Name, f.Name)
+			cmdWithArg := fmt.Sprintf("%s %s -%s", cli.name, cmd.Name, f.Name)
+			if seen[envKey] != "" {
+				// if we've seen it before, it's a problem
+				if len(collisions[envKey]) == 0 {
+					// add the first seen
+					collisions[envKey] = []string{seen[envKey]}
+				}
+				// add this one
+				collisions[envKey] = append(collisions[envKey], cmdWithArg)
+			} else {
+				// otherwise, mark as seen
+				seen[envKey] = cmdWithArg
+			}
+		}
+	}
+
+	if len(collisions) > 0 {
+		msg := "possible environment key collisions:\n"
+		for k, vs := range collisions {
+			msg += fmt.Sprintf("  %s: \"%s\"\n", k, strings.Join(vs, `", "`))
+		}
+		return errors.New(msg)
+	}
+
+	return nil
 }
 
 func (cli *cli) Main() {
+	if err := cli.Validate(); err != nil {
+		cli.stderr(fmt.Sprintf("%s\n\n", err))
+		cli.os.Exit(2)
+	}
+
 	cmdErr := cli.mainOrCmdErr()
 
 	if cmdErr.IsError() {
@@ -113,7 +173,7 @@ func (cli *cli) Main() {
 		}
 	}
 
-	cli.exit(int(cmdErr.Code))
+	cli.os.Exit(int(cmdErr.Code))
 }
 
 func (cli *cli) Flags() *flag.FlagSet {
@@ -123,7 +183,7 @@ func (cli *cli) Flags() *flag.FlagSet {
 func (cli *cli) mainOrCmdErr() command.CmdErr {
 	// if we have a single command, it is implicitly the first argument
 	if len(cli.commands) == 1 {
-		return cli.cmdOrCmdErr(cli.commands[0], cli.osArgs())
+		return cli.cmdOrCmdErr(cli.commands[0], cli.os.Args())
 	}
 
 	args, err := cli.parseGlobalFlags()
@@ -164,12 +224,12 @@ func (cli *cli) parseGlobalFlags() ([]string, error) {
 	addHelpFlagIfMissing(&cli.flags, &cli.helpFlag)
 
 	// parse flags
-	if err := quietParse(&cli.flags, cli.osArgs()[1:]); err != nil {
+	if err := quietParse(&cli.flags, cli.os.Args()[1:]); err != nil {
 		return nil, err
 	}
 
 	// fill unset flags from env
-	cli.fillFlagsFromEnv(&cli.flags, cli.flagsFromEnv)
+	cli.flagsFromEnv.Fill()
 	args := cli.flags.Args()
 
 	// treat help as -help
@@ -202,7 +262,7 @@ func (cli *cli) cmdOrCmdErr(cmd *command.Cmd, args []string) command.CmdErr {
 	}
 
 	// fill unset flags from env
-	cli.fillFlagsFromEnv(&cmd.Flags, cli.flagsFromEnv)
+	cli.cmdFlagsFromEnv[cmd.Name].Fill()
 
 	// <app> <command> -help
 	// <app> <command> -h
@@ -263,11 +323,15 @@ func (cli *cli) command(name string) *command.Cmd {
 }
 
 func (cli *cli) globalUsage() {
-	cli.usage.Global(cli.commands, &cli.flags, cli.flagsFromEnv)
+	cli.usage.Global(cli.commands, cli.flagsFromEnv)
 }
 
 func (cli *cli) commandUsage(cmd *command.Cmd) {
-	cli.usage.Command(cmd, cli.flagsFromEnv)
+	cli.usage.Command(cmd, cli.flagsFromEnv, cli.cmdFlagsFromEnv[cmd.Name])
+}
+
+func (cli *cli) stderr(msg string) {
+	fmt.Fprint(cli.os.Stderr(), msg)
 }
 
 func quietParse(fs *flag.FlagSet, args []string) error {

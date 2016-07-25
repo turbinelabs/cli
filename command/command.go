@@ -4,6 +4,8 @@
 // implementations of help and version sub-commands.
 package command
 
+//go:generate mockgen -source $GOFILE -destination mock_$GOFILE -package $GOPACKAGE
+
 import (
 	"flag"
 	"fmt"

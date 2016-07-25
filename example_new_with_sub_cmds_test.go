@@ -107,10 +107,7 @@ type globalFlagsT struct {
 
 var globalFlags = globalFlagsT{}
 
-// This example shows how to create a CLI with multiple sub-commands
-func Example_subCommands() {
-	// this would be your main() function
-
+func mkSubCmdCLI() cli.CLI {
 	// make a new CLI passing the description and version and one or more sub commands
 	c := cli.NewWithSubCmds(
 		"an example CLI for simple string operations",
@@ -122,6 +119,28 @@ func Example_subCommands() {
 	// Global flags can be used to modify global state
 	c.Flags().BoolVar(&globalFlags.verbose, "verbose", false, "Produce verbose output")
 
-	// run the Main function, which calls os.Exit with the appropriate exit status
-	c.Main()
+	return c
 }
+
+// This example shows how to create a CLI with multiple sub-commands
+func Example_subCommands() {
+	// this would be your main() function
+
+	// run the Main function, which calls os.Exit with the appropriate exit status
+	mkSubCmdCLI().Main()
+}
+
+// Add the following to your tests to validate that there are no collisions
+// between command flags:
+
+// package main
+
+// import (
+// 	"testing"
+
+// 	"github.com/turbinelabs/test/assert"
+// )
+
+// func TestCLI(t *testing.T) {
+// 	assert.Nil(t, mkCLI().Validate())
+// }
