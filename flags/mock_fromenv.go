@@ -57,16 +57,6 @@ func (_mr *_MockFromEnvRecorder) Filled() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Filled")
 }
 
-func (_m *MockFromEnv) AllKeys() []string {
-	ret := _m.ctrl.Call(_m, "AllKeys")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-func (_mr *_MockFromEnvRecorder) AllKeys() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "AllKeys")
-}
-
 func (_m *MockFromEnv) AllFlags() []*flag.Flag {
 	ret := _m.ctrl.Call(_m, "AllFlags")
 	ret0, _ := ret[0].([]*flag.Flag)
