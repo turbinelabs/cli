@@ -271,7 +271,7 @@ func (cli *cli) cmdOrCmdErr(cmd *command.Cmd, args []string, missingErrs []strin
 	}
 
 	// fill unset flags from env
-	cli.cmdFlagsFromEnv[cmd.Name].Fill()
+	cli.commandFlagsFromEnv(cmd).Fill()
 
 	// <app> <command> -help
 	// <app> <command> -h
@@ -342,7 +342,15 @@ func (cli *cli) globalUsage() {
 }
 
 func (cli *cli) commandUsage(cmd *command.Cmd) {
-	cli.usage.Command(cmd, cli.flagsFromEnv, cli.cmdFlagsFromEnv[cmd.Name])
+	cli.usage.Command(cmd, cli.flagsFromEnv, cli.commandFlagsFromEnv(cmd))
+}
+
+func (cli *cli) commandFlagsFromEnv(cmd *command.Cmd) flags.FromEnv {
+	if len(cli.commands) == 1 {
+		return cli.cmdFlagsFromEnv[cli.name]
+	} else {
+		return cli.cmdFlagsFromEnv[cmd.Name]
+	}
 }
 
 func (cli *cli) stderr(msg string) {

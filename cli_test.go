@@ -101,17 +101,27 @@ func newCLIAndMocks(t testing.TB, cType cmdType) (*cli, *cliTestMocks) {
 		finish:             ctrl.Finish,
 	}
 
+	var fromEnvMap map[string]flags.FromEnv
+
+	if cType == multipleCmds {
+		fromEnvMap = map[string]flags.FromEnv{
+			"foo": mocks.cmdFooFlagsFromEnv,
+			"bar": mocks.cmdBarFlagsFromEnv,
+		}
+	} else {
+		fromEnvMap = map[string]flags.FromEnv{
+			"blar": mocks.cmdFooFlagsFromEnv,
+		}
+	}
+
 	cli := &cli{
 		commands: cmds,
 		name:     "blar",
 		usage:    mocks.usage,
 		version:  mocks.version,
 
-		flagsFromEnv: mocks.flagsFromEnv,
-		cmdFlagsFromEnv: map[string]flags.FromEnv{
-			"foo": mocks.cmdFooFlagsFromEnv,
-			"bar": mocks.cmdBarFlagsFromEnv,
-		},
+		flagsFromEnv:    mocks.flagsFromEnv,
+		cmdFlagsFromEnv: fromEnvMap,
 
 		os: mocks.os,
 	}
