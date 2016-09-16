@@ -8,7 +8,7 @@ import (
 	"github.com/turbinelabs/arrays/indexof"
 )
 
-// Strings conformes to the flag.Value and flag.Getter interfaces, and
+// Strings conforms to the flag.Value and flag.Getter interfaces, and
 // can be used populate a slice of strings from a flag.Flag.
 type Strings struct {
 	// Populated from the command line.
