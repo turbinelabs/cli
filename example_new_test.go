@@ -95,7 +95,7 @@ func Example_singleCommand() {
 }
 
 // Add the following to your tests to validate that there are no collisions
-// between command flags:
+// between command flags and that help text can be generated without error:
 
 // package main
 

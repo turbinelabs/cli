@@ -177,7 +177,13 @@ func (u usageT) option(f *flag.Flag) string {
 func (u usageT) cmd(name, desc string) string {
 	cleanDesc := u.clean(12, desc)
 	if len(name) < 7 && len(cleanDesc) < u.width {
-		return fmt.Sprintf("    %s%s%s", ul(name), strings.Repeat(" ", 8-len(name)), cleanDesc[12:])
+		cleanDesc = u.clean(0, desc)
+		return fmt.Sprintf(
+			"    %s%s%s",
+			ul(name),
+			strings.Repeat(" ", 8-len(name)),
+			cleanDesc,
+		)
 	} else {
 		return fmt.Sprintf("    %s\n%s", ul(name), cleanDesc)
 	}

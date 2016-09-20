@@ -3,7 +3,10 @@
 // command-specific usage of the App.
 package app
 
-import "os"
+import (
+	"io"
+	"os"
+)
 
 // A simple representation of a command-line application
 type App struct {
@@ -17,6 +20,12 @@ type App struct {
 // prints tab-formatted output to STDOUT.
 func (a App) Usage() Usage {
 	return newUsage(a, os.Stdout, widthFromTerm)
+}
+
+// RedirectedUsage produces a Usage for this App, which prints
+// tab-formatted output to the given Writer at a width of 80 columns.
+func (a App) RedirectedUsage(writer io.Writer) Usage {
+	return newUsage(a, writer, 80)
 }
 
 func (a App) Version() Version {

@@ -51,7 +51,30 @@ func TestValidate(t *testing.T) {
   FOO_BAR_BAZ_BLEGGA: "foo -bar-baz-blegga", "foo bar -baz.blegga", "foo bar-baz -blegga"
 `)
 
-	assert.DeepEqual(t, fooCli.Validate(), wantErr)
+	assert.DeepEqual(t, fooCli.Validate(ValidateSkipHelpText), wantErr)
+}
+
+func TestValidateHelpText(t *testing.T) {
+	barCmd := &command.Cmd{Name: "bar"}
+	barBazCmd := &command.Cmd{Name: "bar-baz"}
+	fooCli := mkNew(app.App{Name: "foo"}, barCmd, barBazCmd)
+
+	assert.Nil(t, fooCli.Validate())
+
+	barCmd = &command.Cmd{Name: "bar", Description: "this won't {{work}}"}
+	barBazCmd = &command.Cmd{Name: "bar-baz"}
+	fooCli = mkNew(app.App{Name: "foo"}, barCmd, barBazCmd)
+
+	assert.ErrorContains(t, fooCli.Validate(), `function "work" not defined`)
+
+	barCmd = &command.Cmd{Name: "bar"}
+	barBazCmd = &command.Cmd{Name: "bar-baz", Description: "this won't work {{either}}"}
+	fooCli = mkNew(app.App{Name: "foo"}, barCmd, barBazCmd)
+
+	assert.ErrorContains(t, fooCli.Validate(), `function "either" not defined`)
+
+	// ignores help text in this case
+	assert.Nil(t, fooCli.Validate(ValidateSkipHelpText))
 }
 
 type cmdType string

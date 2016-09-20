@@ -1,10 +1,7 @@
-// The cli package provides a simple library for creating command-line
-// applications with multiple sub-commands. It supports both global and
-// per-subcommand flags, and automatically generates help and version
-// sub-commands.
 package cli
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -22,6 +19,14 @@ import (
 const HelpSummary = "Show a list of commands or help for one command"
 const VersionSummary = "Print the version and exit"
 
+type ValidationFlag int
+
+const (
+	// Skips Validating that global and subcommand help text can
+	// be generated.
+	ValidateSkipHelpText ValidationFlag = iota
+)
+
 // A CLI represents a command-line application
 type CLI interface {
 	// Flags returns a pointer to the global flags for the CLI
@@ -37,8 +42,9 @@ type CLI interface {
 	// Validate can be used to make sure the CLI is well-defined from within
 	// unit tests. In particular it will validate that no two flags exist with
 	// the same environment key. As a last-ditch effort, Validate will be called
-	// at the start of Main.
-	Validate() error
+	// at the start of Main. ValidationFlag values may be passed to alter the
+	// level of validation performed.
+	Validate(...ValidationFlag) error
 }
 
 type cli struct {
@@ -46,6 +52,7 @@ type cli struct {
 
 	commands    []*command.Cmd
 	name        string
+	app         app.App
 	usage       app.Usage
 	version     app.Version
 	versionFlag bool
@@ -92,6 +99,7 @@ func NewWithSubCmds(
 func mkNew(app app.App, commands ...*command.Cmd) CLI {
 	c := &cli{
 		commands: commands,
+		app:      app,
 		name:     app.Name,
 		usage:    app.Usage(),
 		version:  app.Version(),
@@ -115,7 +123,17 @@ func mkNew(app app.App, commands ...*command.Cmd) CLI {
 	return c
 }
 
-func (cli *cli) Validate() error {
+func validateFlagIsSet(vflags []ValidationFlag, vflag ValidationFlag) bool {
+	for _, f := range vflags {
+		if f == vflag {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (cli *cli) Validate(vflags ...ValidationFlag) error {
 	seen := map[string]string{}
 	collisions := map[string][]string{}
 
@@ -152,11 +170,54 @@ func (cli *cli) Validate() error {
 		return errors.New(msg)
 	}
 
+	if !validateFlagIsSet(vflags, ValidateSkipHelpText) {
+		if err := cli.validateHelpText(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (cli *cli) validateHelpText() error {
+	usage := cli.app.RedirectedUsage(bytes.NewBufferString(""))
+	errs := []string{}
+
+	try := func(u func()) {
+		defer func() {
+			if e := recover(); e != nil {
+				switch v := e.(type) {
+				case error:
+					errs = append(errs, v.Error())
+				default:
+					errs = append(errs, fmt.Sprintf("%v", e))
+				}
+			}
+		}()
+
+		u()
+	}
+
+	try(func() {
+		usage.Global(cli.commands, cli.flagsFromEnv)
+	})
+	for _, cmd := range cli.commands {
+		try(func() {
+			usage.Command(cmd, cli.flagsFromEnv, cli.commandFlagsFromEnv(cmd))
+		})
+	}
+
+	if len(errs) > 0 {
+		msg := "error(s) generating help text:\n  "
+		msg += strings.Join(errs, "\n  ")
+		return errors.New(msg + "\n")
+	}
+
 	return nil
 }
 
 func (cli *cli) Main() {
-	if err := cli.Validate(); err != nil {
+	if err := cli.Validate(ValidateSkipHelpText); err != nil {
 		cli.stderr(fmt.Sprintf("%s\n\n", err))
 		cli.os.Exit(2)
 	}
