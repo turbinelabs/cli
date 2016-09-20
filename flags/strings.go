@@ -31,7 +31,7 @@ func NewStrings() Strings {
 
 // NewStrings produces a Strings with a set of allowed values and the
 // default delimiter (",").
-func NewStringsWithConstraint(allowedValues []string) Strings {
+func NewStringsWithConstraint(allowedValues ...string) Strings {
 	return Strings{AllowedValues: allowedValues, Delimiter: ","}
 }
 

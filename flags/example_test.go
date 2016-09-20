@@ -31,7 +31,7 @@ func ExampleNewStrings() {
 
 func ExampleNewStringsWithConstraint() {
 	var strings flags.Strings // typically a field in a struct
-	strings = flags.NewStringsWithConstraint([]string{"choice1", "option2", "possibility3"})
+	strings = flags.NewStringsWithConstraint("choice1", "option2", "possibility3")
 
 	flagset := flag.NewFlagSet("example", flag.PanicOnError)
 	flagset.Var(
@@ -73,7 +73,7 @@ func ExampleStrings_withDelimiter() {
 
 func ExampleNewChoice() {
 	var choice flags.Choice // typically a field in a struct
-	choice = flags.NewChoice([]string{"a", "b", "c"})
+	choice = flags.NewChoice("a", "b", "c")
 
 	flagset := flag.NewFlagSet("example", flag.PanicOnError)
 	flagset.Var(

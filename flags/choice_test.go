@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewChoice(t *testing.T) {
-	c := NewChoice([]string{"a", "b", "c"})
+	c := NewChoice("a", "b", "c")
 	assert.Nil(t, c.Choice)
 	assert.DeepEqual(t, c.AllowedValues, []string{"a", "b", "c"})
 }

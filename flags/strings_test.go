@@ -14,7 +14,7 @@ func TestNewStrings(t *testing.T) {
 }
 
 func TestNewStringsWithConstraint(t *testing.T) {
-	s := NewStringsWithConstraint([]string{"a", "b", "c"})
+	s := NewStringsWithConstraint("a", "b", "c")
 	assert.Nil(t, s.Strings)
 	assert.DeepEqual(t, s.AllowedValues, []string{"a", "b", "c"})
 	assert.Equal(t, s.Delimiter, ",")

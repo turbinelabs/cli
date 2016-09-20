@@ -21,7 +21,7 @@ type Choice struct {
 var _ flag.Getter = &Choice{}
 
 // NewChoice produces a Choice with a set of allowed values.
-func NewChoice(allowedValues []string) Choice {
+func NewChoice(allowedValues ...string) Choice {
 	return Choice{AllowedValues: allowedValues}
 }
 
