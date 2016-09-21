@@ -28,10 +28,32 @@ func (_m *MockVersion) EXPECT() *_MockVersionRecorder {
 	return _m.recorder
 }
 
-func (_m *MockVersion) Print() {
-	_m.ctrl.Call(_m, "Print")
+func (_m *MockVersion) Describe() string {
+	ret := _m.ctrl.Call(_m, "Describe")
+	ret0, _ := ret[0].(string)
+	return ret0
 }
 
-func (_mr *_MockVersionRecorder) Print() *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Print")
+func (_mr *_MockVersionRecorder) Describe() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Describe")
+}
+
+func (_m *MockVersion) Version() string {
+	ret := _m.ctrl.Call(_m, "Version")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+func (_mr *_MockVersionRecorder) Version() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Version")
+}
+
+func (_m *MockVersion) Metadata() VersionMetadata {
+	ret := _m.ctrl.Call(_m, "Metadata")
+	ret0, _ := ret[0].(VersionMetadata)
+	return ret0
+}
+
+func (_mr *_MockVersionRecorder) Metadata() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Metadata")
 }

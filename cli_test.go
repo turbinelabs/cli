@@ -398,7 +398,7 @@ func TestCLI(t *testing.T) {
 					}
 
 					if tc.versionCalled {
-						mocks.version.EXPECT().Print()
+						mocks.version.EXPECT().Describe().Return("version")
 					}
 
 					if tc.runnerCalled {

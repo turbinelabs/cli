@@ -45,6 +45,9 @@ type CLI interface {
 	// at the start of Main. ValidationFlag values may be passed to alter the
 	// level of validation performed.
 	Validate(...ValidationFlag) error
+
+	// Returns the CLI version data.
+	Version() app.Version
 }
 
 type cli struct {
@@ -216,6 +219,10 @@ func (cli *cli) validateHelpText() error {
 	return nil
 }
 
+func (cli *cli) Version() app.Version {
+	return cli.version
+}
+
 func (cli *cli) Main() {
 	if err := cli.Validate(ValidateSkipHelpText); err != nil {
 		cli.stderr(fmt.Sprintf("%s\n\n", err))
@@ -262,7 +269,7 @@ func (cli *cli) mainOrCmdErr() command.CmdErr {
 		// <app> version [ignored]
 		// <app> -version [ignored]
 		// <app> -v [ignored]
-		cli.version.Print()
+		fmt.Println(cli.version.Describe())
 		return command.NoError()
 	}
 
@@ -347,7 +354,7 @@ func (cli *cli) cmdOrCmdErr(cmd *command.Cmd, args []string, missingErrs []strin
 	// <app> <command> -version
 	// <app> <command> -v
 	if cmdVersionFlag {
-		cli.version.Print()
+		fmt.Println(cli.version.Describe())
 		return command.NoError()
 	}
 

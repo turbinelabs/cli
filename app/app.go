@@ -29,5 +29,5 @@ func (a App) RedirectedUsage(writer io.Writer) Usage {
 }
 
 func (a App) Version() Version {
-	return versionT{a.Name, a.VersionString}
+	return versionT{name: a.Name, version: a.VersionString, metadata: versionMetadata}
 }
