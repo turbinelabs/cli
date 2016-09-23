@@ -63,3 +63,8 @@ func (v versionT) Metadata() VersionMetadata {
 func SetVersionMetadata(metadata VersionMetadata) {
 	versionMetadata = metadata
 }
+
+// Gets the version metadata for the build. May be useful for forensics.
+func GetVersionMetadata() VersionMetadata {
+	return versionMetadata
+}
