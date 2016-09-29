@@ -25,6 +25,11 @@ func NewChoice(allowedValues ...string) Choice {
 	return Choice{AllowedValues: allowedValues}
 }
 
+func (cv Choice) WithDefault(value string) Choice {
+	cv.Set(value)
+	return cv
+}
+
 func (cv *Choice) String() string {
 	if cv.Choice != nil {
 		return *cv.Choice
