@@ -51,10 +51,12 @@ func TestFillFromEnvAllUnset(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockOS := tbnos.NewMockOS(ctrl)
-	mockOS.EXPECT().Getenv("FOO_BAR_FOO_BAZ").Return("blegga")
-	mockOS.EXPECT().Getenv("FOO_BAR_BAR").Return("")
+	mockOS.EXPECT().LookupEnv("FOO_BAR_FOO_BAZ").Return("", true)
+	mockOS.EXPECT().LookupEnv("FOO_BAR_BAR").Return("", false)
 
 	fs, fooFlag, barFlag := testFlags()
+	*fooFlag = "foo-default"
+	*barFlag = "bar-default"
 	fs.Parse([]string{})
 
 	fe := NewFromEnv(fs, "foo", "bar").(fromEnv)
@@ -62,9 +64,11 @@ func TestFillFromEnvAllUnset(t *testing.T) {
 
 	fe.Fill()
 
-	assert.Equal(t, *fooFlag, "blegga")
-	assert.Equal(t, *barFlag, "")
-	assert.DeepEqual(t, fe.Filled(), map[string]string{"FOO_BAR_FOO_BAZ": "blegga"})
+	assert.Equal(t, *fooFlag, "")
+	assert.Equal(t, *barFlag, "bar-default")
+	assert.DeepEqual(t, fe.Filled(), map[string]string{
+		"FOO_BAR_FOO_BAZ": "",
+	})
 }
 
 func TestFillFromEnvOneSet(t *testing.T) {
@@ -72,7 +76,7 @@ func TestFillFromEnvOneSet(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockOS := tbnos.NewMockOS(ctrl)
-	mockOS.EXPECT().Getenv("FOO_BAR_BAR").Return("")
+	mockOS.EXPECT().LookupEnv("FOO_BAR_BAR").Return("", false)
 
 	fs, fooFlag, barFlag := testFlags()
 	fs.Parse([]string{"--foo-baz=blargo"})

@@ -77,8 +77,8 @@ func (fe fromEnv) Fill() {
 	fe.fs.VisitAll(func(f *flag.Flag) {
 		if !alreadySet[f.Name] {
 			key := EnvKey(fe.prefix, f.Name)
-			val := fe.os.Getenv(key)
-			if val != "" {
+			val, found := fe.os.LookupEnv(key)
+			if found {
 				fe.fs.Set(f.Name, val)
 				fe.filledFromEnv[key] = val
 			}
