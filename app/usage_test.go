@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/turbinelabs/cli/command"
-	tbnflag "github.com/turbinelabs/stdlib/flag"
+	tbnflag "github.com/turbinelabs/nonstdlib/flag"
 	"github.com/turbinelabs/test/assert"
 )
 

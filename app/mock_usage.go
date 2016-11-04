@@ -6,7 +6,7 @@ package app
 import (
 	gomock "github.com/golang/mock/gomock"
 	command "github.com/turbinelabs/cli/command"
-	tbnflag "github.com/turbinelabs/stdlib/flag"
+	tbnflag "github.com/turbinelabs/nonstdlib/flag"
 )
 
 // Mock of Usage interface

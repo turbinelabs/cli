@@ -12,8 +12,8 @@ import (
 
 	"github.com/turbinelabs/cli/app"
 	"github.com/turbinelabs/cli/command"
-	tbnflag "github.com/turbinelabs/stdlib/flag"
-	tbnos "github.com/turbinelabs/stdlib/os"
+	tbnflag "github.com/turbinelabs/nonstdlib/flag"
+	tbnos "github.com/turbinelabs/nonstdlib/os"
 )
 
 const HelpSummary = "Show a list of commands or help for one command"

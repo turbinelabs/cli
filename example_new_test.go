@@ -7,7 +7,7 @@ import (
 
 	"github.com/turbinelabs/cli"
 	"github.com/turbinelabs/cli/command"
-	tbnflag "github.com/turbinelabs/stdlib/flag"
+	tbnflag "github.com/turbinelabs/nonstdlib/flag"
 )
 
 // The typical pattern is to provide a public Cmd() func. This function should

@@ -18,7 +18,7 @@ import (
 	"unicode"
 
 	"github.com/turbinelabs/cli/command"
-	tbnflag "github.com/turbinelabs/stdlib/flag"
+	tbnflag "github.com/turbinelabs/nonstdlib/flag"
 )
 
 const widthFromTerm = -1

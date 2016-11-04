@@ -33,7 +33,7 @@ type Cmd struct {
 
 // Run invokes the Runner associated with this Cmd, passing the args remaining
 // after flags are parsed out. Names of Flags that have been marked as required
-// by wrapping their Usage strings in turbinelabs/stdlib/flag.Required() and
+// by wrapping their Usage strings in turbinelabs/nonstdlib/flag.Required() and
 // for which no value has been set will be returned to the caller in a
 // Cmd.BadInput.
 func (c *Cmd) Run() CmdErr {
