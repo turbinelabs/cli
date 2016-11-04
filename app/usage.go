@@ -18,7 +18,7 @@ import (
 	"unicode"
 
 	"github.com/turbinelabs/cli/command"
-	"github.com/turbinelabs/cli/flags"
+	tbnflag "github.com/turbinelabs/stdlib/flag"
 )
 
 const widthFromTerm = -1
@@ -28,10 +28,10 @@ const widthFromTerm = -1
 type Usage interface {
 	// Global outputs the global usage for an App, based on the provided
 	// command.Cmds and flag.FlagSet
-	Global(cmds []*command.Cmd, flagsFromEnv flags.FromEnv)
+	Global(cmds []*command.Cmd, flagsFromEnv tbnflag.FromEnv)
 	// Command outputs the usage for the given command.Cmd, including global and
 	// command flags.
-	Command(cmd *command.Cmd, globalFlagsFromEnv flags.FromEnv, cmdFlagsFromEnv flags.FromEnv)
+	Command(cmd *command.Cmd, globalFlagsFromEnv tbnflag.FromEnv, cmdFlagsFromEnv tbnflag.FromEnv)
 }
 
 // The default implementation of Usage for this App, prints tab-formatted
@@ -249,11 +249,11 @@ func newUsage(a App, wr io.Writer, width int) Usage {
 	return u
 }
 
-func (u usageT) Global(cmds []*command.Cmd, flagsFromEnv flags.FromEnv) {
+func (u usageT) Global(cmds []*command.Cmd, flagsFromEnv tbnflag.FromEnv) {
 	u.globalUsageTemplate.Execute(u.tabWriter, struct {
 		Executable  string
 		Commands    []*command.Cmd
-		GlobalFlags flags.FromEnv
+		GlobalFlags tbnflag.FromEnv
 		Description string
 		Version     string
 	}{
@@ -268,15 +268,15 @@ func (u usageT) Global(cmds []*command.Cmd, flagsFromEnv flags.FromEnv) {
 
 func (u usageT) Command(
 	cmd *command.Cmd,
-	globalFlagsFromEnv flags.FromEnv,
-	cmdFlagsFromEnv flags.FromEnv,
+	globalFlagsFromEnv tbnflag.FromEnv,
+	cmdFlagsFromEnv tbnflag.FromEnv,
 ) {
 	u.commandUsageTemplate.Execute(u.tabWriter, struct {
 		Executable  string
 		HasSubCmds  bool
 		Cmd         *command.Cmd
-		GlobalFlags flags.FromEnv
-		CmdFlags    flags.FromEnv
+		GlobalFlags tbnflag.FromEnv
+		CmdFlags    tbnflag.FromEnv
 		Version     string
 	}{
 		u.app.Name,

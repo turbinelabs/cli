@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/turbinelabs/cli/command"
-	"github.com/turbinelabs/cli/flags"
+	tbnflag "github.com/turbinelabs/stdlib/flag"
 	"github.com/turbinelabs/test/assert"
 )
 
@@ -23,8 +23,8 @@ func testFlags() *flag.FlagSet {
 	return &flags
 }
 
-func testFlagsFromEnv(scopes ...string) flags.FromEnv {
-	fe := flags.NewFromEnv(testFlags(), scopes...)
+func testFlagsFromEnv(scopes ...string) tbnflag.FromEnv {
+	fe := tbnflag.NewFromEnv(testFlags(), scopes...)
 	os.Setenv(fe.Prefix()+"FOO", "bar")
 	os.Setenv(fe.Prefix()+"BAZ", "blegga")
 	fe.Fill()

@@ -11,14 +11,14 @@ import (
 
 	"github.com/turbinelabs/cli/app"
 	"github.com/turbinelabs/cli/command"
-	"github.com/turbinelabs/cli/flags"
-	tbnos "github.com/turbinelabs/os"
+	tbnflag "github.com/turbinelabs/stdlib/flag"
+	tbnos "github.com/turbinelabs/stdlib/os"
 	"github.com/turbinelabs/test/assert"
 )
 
 // func TestCmdRunRequiredMissing(t *testing.T) {
 // 	var fs flag.FlagSet
-// 	fs.String("bleh", "", flags.Required("bleh"))
+// 	fs.String("bleh", "", tbnflag.Required("bleh"))
 // 	fs.Parse([]string{"foo"})
 
 // 	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
@@ -28,7 +28,7 @@ import (
 
 // func TestCmdRunRequiredProvided(t *testing.T) {
 // 	var fs flag.FlagSet
-// 	fs.String("bleh", "", flags.Required("bleh"))
+// 	fs.String("bleh", "", tbnflag.Required("bleh"))
 // 	fs.Parse([]string{"--bleh=blar", "foo"})
 
 // 	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
@@ -90,9 +90,9 @@ type cliTestMocks struct {
 	barRunner          *command.MockRunner
 	usage              *app.MockUsage
 	version            *app.MockVersion
-	flagsFromEnv       *flags.MockFromEnv
-	cmdFooFlagsFromEnv *flags.MockFromEnv
-	cmdBarFlagsFromEnv *flags.MockFromEnv
+	flagsFromEnv       *tbnflag.MockFromEnv
+	cmdFooFlagsFromEnv *tbnflag.MockFromEnv
+	cmdBarFlagsFromEnv *tbnflag.MockFromEnv
 	os                 *tbnos.MockOS
 	stderr             *bytes.Buffer
 	finish             func()
@@ -116,23 +116,23 @@ func newCLIAndMocks(t testing.TB, cType cmdType) (*cli, *cliTestMocks) {
 		barRunner:          barRunner,
 		usage:              app.NewMockUsage(ctrl),
 		version:            app.NewMockVersion(ctrl),
-		flagsFromEnv:       flags.NewMockFromEnv(ctrl),
-		cmdFooFlagsFromEnv: flags.NewMockFromEnv(ctrl),
-		cmdBarFlagsFromEnv: flags.NewMockFromEnv(ctrl),
+		flagsFromEnv:       tbnflag.NewMockFromEnv(ctrl),
+		cmdFooFlagsFromEnv: tbnflag.NewMockFromEnv(ctrl),
+		cmdBarFlagsFromEnv: tbnflag.NewMockFromEnv(ctrl),
 		os:                 tbnos.NewMockOS(ctrl),
 		stderr:             &bytes.Buffer{},
 		finish:             ctrl.Finish,
 	}
 
-	var fromEnvMap map[string]flags.FromEnv
+	var fromEnvMap map[string]tbnflag.FromEnv
 
 	if cType == multipleCmds {
-		fromEnvMap = map[string]flags.FromEnv{
+		fromEnvMap = map[string]tbnflag.FromEnv{
 			"foo": mocks.cmdFooFlagsFromEnv,
 			"bar": mocks.cmdBarFlagsFromEnv,
 		}
 	} else {
-		fromEnvMap = map[string]flags.FromEnv{
+		fromEnvMap = map[string]tbnflag.FromEnv{
 			"blar": mocks.cmdFooFlagsFromEnv,
 		}
 	}
@@ -372,8 +372,8 @@ func TestCLI(t *testing.T) {
 
 					fooCmd := c.command("foo")
 
-					c.flags.BoolVar(&cliBarFlag, "bar", false, flags.Required(""))
-					fooCmd.Flags.BoolVar(&cmdBarFlag, "bar", false, flags.Required(""))
+					c.flags.BoolVar(&cliBarFlag, "bar", false, tbnflag.Required(""))
+					fooCmd.Flags.BoolVar(&cmdBarFlag, "bar", false, tbnflag.Required(""))
 
 					mocks.os.EXPECT().Args().Return(append([]string{c.name}, args...))
 

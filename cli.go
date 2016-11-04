@@ -12,8 +12,8 @@ import (
 
 	"github.com/turbinelabs/cli/app"
 	"github.com/turbinelabs/cli/command"
-	"github.com/turbinelabs/cli/flags"
-	tbnos "github.com/turbinelabs/os"
+	tbnflag "github.com/turbinelabs/stdlib/flag"
+	tbnos "github.com/turbinelabs/stdlib/os"
 )
 
 const HelpSummary = "Show a list of commands or help for one command"
@@ -61,8 +61,8 @@ type cli struct {
 	versionFlag bool
 	helpFlag    bool
 
-	flagsFromEnv    flags.FromEnv
-	cmdFlagsFromEnv map[string]flags.FromEnv
+	flagsFromEnv    tbnflag.FromEnv
+	cmdFlagsFromEnv map[string]tbnflag.FromEnv
 
 	os tbnos.OS
 }
@@ -110,16 +110,16 @@ func mkNew(app app.App, commands ...*command.Cmd) CLI {
 		os: tbnos.New(),
 	}
 
-	c.flagsFromEnv = flags.NewFromEnv(&c.flags, app.Name)
+	c.flagsFromEnv = tbnflag.NewFromEnv(&c.flags, app.Name)
 
 	if len(commands) == 1 {
-		c.cmdFlagsFromEnv = map[string]flags.FromEnv{
-			app.Name: flags.NewFromEnv(&commands[0].Flags, app.Name),
+		c.cmdFlagsFromEnv = map[string]tbnflag.FromEnv{
+			app.Name: tbnflag.NewFromEnv(&commands[0].Flags, app.Name),
 		}
 	} else {
-		c.cmdFlagsFromEnv = map[string]flags.FromEnv{}
+		c.cmdFlagsFromEnv = map[string]tbnflag.FromEnv{}
 		for _, cmd := range commands {
-			c.cmdFlagsFromEnv[cmd.Name] = flags.NewFromEnv(&cmd.Flags, app.Name, cmd.Name)
+			c.cmdFlagsFromEnv[cmd.Name] = tbnflag.NewFromEnv(&cmd.Flags, app.Name, cmd.Name)
 		}
 	}
 
@@ -141,14 +141,14 @@ func (cli *cli) Validate(vflags ...ValidationFlag) error {
 	collisions := map[string][]string{}
 
 	// add top-level flags
-	for _, f := range flags.Enumerate(&cli.flags) {
-		seen[flags.EnvKey(cli.name, f.Name)] = fmt.Sprintf("%s -%s", cli.name, f.Name)
+	for _, f := range tbnflag.Enumerate(&cli.flags) {
+		seen[tbnflag.EnvKey(cli.name, f.Name)] = fmt.Sprintf("%s -%s", cli.name, f.Name)
 	}
 
 	// add cmd-level flags
 	for _, cmd := range cli.commands {
-		for _, f := range flags.Enumerate(&cmd.Flags) {
-			envKey := flags.EnvKey(cli.name, cmd.Name, f.Name)
+		for _, f := range tbnflag.Enumerate(&cmd.Flags) {
+			envKey := tbnflag.EnvKey(cli.name, cmd.Name, f.Name)
 			cmdWithArg := fmt.Sprintf("%s %s -%s", cli.name, cmd.Name, f.Name)
 			if seen[envKey] != "" {
 				// if we've seen it before, it's a problem
@@ -413,7 +413,7 @@ func (cli *cli) commandUsage(cmd *command.Cmd) {
 	cli.usage.Command(cmd, cli.flagsFromEnv, cli.commandFlagsFromEnv(cmd))
 }
 
-func (cli *cli) commandFlagsFromEnv(cmd *command.Cmd) flags.FromEnv {
+func (cli *cli) commandFlagsFromEnv(cmd *command.Cmd) tbnflag.FromEnv {
 	if len(cli.commands) == 1 {
 		return cli.cmdFlagsFromEnv[cli.name]
 	} else {
@@ -426,7 +426,7 @@ func (cli *cli) stderr(msg string) {
 }
 
 func checkRequired(fs *flag.FlagSet, errStrs []string, prefix string) []string {
-	missing := flags.MissingRequired(fs)
+	missing := tbnflag.MissingRequired(fs)
 	if len(missing) != 0 {
 		for _, name := range missing {
 			errStrs = append(errStrs, fmt.Sprintf("--%s is a required %sflag", name, prefix))

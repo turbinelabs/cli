@@ -7,7 +7,7 @@ import (
 
 	"github.com/turbinelabs/cli"
 	"github.com/turbinelabs/cli/command"
-	"github.com/turbinelabs/cli/flags"
+	tbnflag "github.com/turbinelabs/stdlib/flag"
 )
 
 // The typical pattern is to provide a public Cmd() func. This function should
@@ -34,7 +34,7 @@ func Cmd() *command.Cmd {
 
 	// If we wrap flag.Required(...) around the usage string, Cmd.Run(...)
 	// will fail if it is unspecified
-	cmd.Flags.StringVar(&runner.thing, "thing", "", flags.Required("The thing"))
+	cmd.Flags.StringVar(&runner.thing, "thing", "", tbnflag.Required("The thing"))
 
 	return cmd
 }
