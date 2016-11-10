@@ -6,7 +6,7 @@ package app
 import (
 	gomock "github.com/golang/mock/gomock"
 	command "github.com/turbinelabs/cli/command"
-	tbnflag "github.com/turbinelabs/nonstdlib/flag"
+	flag "github.com/turbinelabs/nonstdlib/flag"
 )
 
 // Mock of Usage interface
@@ -30,7 +30,7 @@ func (_m *MockUsage) EXPECT() *_MockUsageRecorder {
 	return _m.recorder
 }
 
-func (_m *MockUsage) Global(cmds []*command.Cmd, flagsFromEnv tbnflag.FromEnv) {
+func (_m *MockUsage) Global(cmds []*command.Cmd, flagsFromEnv flag.FromEnv) {
 	_m.ctrl.Call(_m, "Global", cmds, flagsFromEnv)
 }
 
@@ -38,7 +38,7 @@ func (_mr *_MockUsageRecorder) Global(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Global", arg0, arg1)
 }
 
-func (_m *MockUsage) Command(cmd *command.Cmd, globalFlagsFromEnv tbnflag.FromEnv, cmdFlagsFromEnv tbnflag.FromEnv) {
+func (_m *MockUsage) Command(cmd *command.Cmd, globalFlagsFromEnv flag.FromEnv, cmdFlagsFromEnv flag.FromEnv) {
 	_m.ctrl.Call(_m, "Command", cmd, globalFlagsFromEnv, cmdFlagsFromEnv)
 }
 
