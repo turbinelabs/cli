@@ -17,6 +17,8 @@ import (
 	"text/template"
 	"unicode"
 
+	tty "github.com/mattn/go-isatty"
+
 	"github.com/turbinelabs/cli/command"
 	tbnflag "github.com/turbinelabs/nonstdlib/flag"
 )
@@ -82,12 +84,20 @@ func notGraphic(r rune) bool {
 	return !unicode.IsGraphic(r)
 }
 
+var consoleIsInteractive = true
+
 func ul(s string) string {
-	return "\033[4m" + s + "\033[0m"
+	if consoleIsInteractive {
+		return "\033[4m" + s + "\033[0m"
+	}
+	return s
 }
 
 func bold(s string) string {
-	return "\033[1m" + s + "\033[0m"
+	if consoleIsInteractive {
+		return "\033[1m" + s + "\033[0m"
+	}
+	return s
 }
 
 func termWidth() int {
@@ -219,12 +229,16 @@ func (u usageT) cmdHelp(name string) string {
 	return u.cleanf(0, `Run "%s help <command>" for more details on a specific command.`, name)
 }
 
-func newUsage(a App, wr io.Writer, width int) Usage {
+func newUsage(a App, wr io.Writer, width int, forceInteractive bool) Usage {
 	if width == widthFromTerm {
 		width = termWidth()
 	}
 	tabWriter := new(tabwriter.Writer)
 	tabWriter.Init(wr, 0, 8, 1, '\t', 0)
+
+	if !forceInteractive {
+		consoleIsInteractive = tty.IsTerminal(os.Stdout.Fd())
+	}
 
 	u := usageT{app: a, tabWriter: tabWriter, width: width}
 

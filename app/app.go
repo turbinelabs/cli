@@ -19,13 +19,13 @@ type App struct {
 // Usage produces the default implementation of Usage for this App, which
 // prints tab-formatted output to STDOUT.
 func (a App) Usage() Usage {
-	return newUsage(a, os.Stdout, widthFromTerm)
+	return newUsage(a, os.Stdout, widthFromTerm, false)
 }
 
 // RedirectedUsage produces a Usage for this App, which prints
 // tab-formatted output to the given Writer at a width of 80 columns.
 func (a App) RedirectedUsage(writer io.Writer) Usage {
-	return newUsage(a, writer, 80)
+	return newUsage(a, writer, 80, false)
 }
 
 func (a App) Version() Version {

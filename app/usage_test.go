@@ -44,7 +44,7 @@ func TestUsageGlobal(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	usage := newUsage(subCmdApp, buf, 84)
+	usage := newUsage(subCmdApp, buf, 84, true)
 	usage.Global(cmds, testFlagsFromEnv(subCmdApp.Name))
 
 	assert.Equal(t, buf.String(), bold("NAME")+`
@@ -101,7 +101,7 @@ Run "foo help <command>" for more details on a specific command.
 `)
 
 	buf = new(bytes.Buffer)
-	usage = newUsage(subCmdApp, buf, 24)
+	usage = newUsage(subCmdApp, buf, 24, true)
 	usage.Global(cmds, testFlagsFromEnv(subCmdApp.Name))
 
 	assert.Equal(t, buf.String(), bold("NAME")+`
@@ -232,7 +232,7 @@ and pay special attention to this pseudo-code:
 	}
 
 	buf := new(bytes.Buffer)
-	usage := newUsage(subCmdApp, buf, 84)
+	usage := newUsage(subCmdApp, buf, 84, true)
 	usage.Command(
 		cmd,
 		testFlagsFromEnv(subCmdApp.Name),
@@ -325,7 +325,7 @@ and pay special attention to this pseudo-code:
 `)
 
 	buf = new(bytes.Buffer)
-	usage = newUsage(singleCmdApp, buf, 84)
+	usage = newUsage(singleCmdApp, buf, 84, true)
 	usage.Command(
 		cmd,
 		testFlagsFromEnv(singleCmdApp.Name),
@@ -386,7 +386,7 @@ and pay special attention to this pseudo-code:
 `)
 
 	buf = new(bytes.Buffer)
-	usage = newUsage(singleCmdApp, buf, 24)
+	usage = newUsage(singleCmdApp, buf, 24, true)
 	usage.Command(
 		cmd,
 		testFlagsFromEnv(singleCmdApp.Name),
