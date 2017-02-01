@@ -166,3 +166,9 @@ Please see [Versioning of Turbine Labs Open Source Projects](http://github.com/t
 ## Pull Requests
 
 Patches accepted! Please see [Contributing to Turbine Labs Open Source Projects](http://github.com/turbinelabs/developer/blob/master/README.md#contributing).
+
+## Code of Conduct
+
+All Turbine Labs open-sourced projects are released with a
+[Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in our
+projects you agree to abide by its terms, which will be vigorously enforced.
