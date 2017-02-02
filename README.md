@@ -176,4 +176,4 @@ Patches accepted! Please see [Contributing to Turbine Labs Open Source Projects]
 
 All Turbine Labs open-sourced projects are released with a
 [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in our
-projects you agree to abide by its terms, which will be vigorously enforced.
+projects you agree to abide by its terms, which will be carefully enforced.
