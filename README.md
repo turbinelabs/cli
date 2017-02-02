@@ -26,9 +26,11 @@ We feel strongly that all Turbine Labs executables should have high-quality
 and consistent ergonomics. We use the `cli` package for all our command line
 tools, private and public.
 
-Why on earth did we choose to roll our own CLI package, with several high quality alternatives already
-available (eg [github.com/urfave/cli](https://github.com/urfave/cli), [github.com/spf13/cobra](https://github.com/spf13/cobra))? As with most libraries, it came
-out of a combination of good intentions and hubris.
+Why on earth did we choose to roll our own CLI package, with several high-quality
+alternatives already available (e.g.
+[github.com/urfave/cli](https://github.com/urfave/cli),
+[github.com/spf13/cobra](https://github.com/spf13/cobra))? As with most
+libraries, it came from a combination of good intentions and hubris.
 
 Chiefly, we wanted:
 
@@ -39,7 +41,9 @@ Chiefly, we wanted:
   - for flags to be configurable via environment flag
   - for usage text to be both auto-generated and fairly customizable
 
-We started with the excellent [github.com/jonboulle/yacli](https://github.com/jonboulle/yacli), a "micro-pseudo-framework" which recognizes a central truth:
+We started with the excellent
+[github.com/jonboulle/yacli](https://github.com/jonboulle/yacli), a
+"micro-pseudo-framework" which recognizes a central truth:
 
 > All CLI frameworks suck. This one just sucks slightly less.
 
@@ -68,7 +72,8 @@ Additionally, we vendor
 [github.com/mattn/go-isatty](https://github.com/mattn/go-isatty) and
 [golang.org/x/sys/unix](https://godoc.org/golang.org/x/sys/unix).
 This should be considered an opaque implementation detail,
-see [Vendoring](http://github.com/turbinelabs/developer/blob/master/README.md#vendoring) for more detail.
+see [Vendoring](http://github.com/turbinelabs/developer/blob/master/README.md#vendoring)
+for more discussion.
 
 ## Install
 
@@ -92,14 +97,14 @@ go test github.com/turbinelabs/cli/...
 
 The `cli` package includes:
 
-  - Support for both global and per-sub-command flags
-  - Automatic generation of help and version flags and (if appropriate)
-    sub-commands
-  - Basic terminal-aware formatting of usage text, including pre-formatted blocks,
-    and bold and underlined text
-  - Auto-wrapping of usage text to the terminal width
-  - Support for the use of environment variables to set both global and
-    per-sub-command flags
+- Support for both global and per-sub-command flags
+- Automatic generation of help and version flags and (if appropriate)
+  sub-commands
+- Basic terminal-aware formatting of usage text, including pre-formatted
+  blocks, and bold and underlined text
+- Auto-wrapping of usage text to the terminal width
+- Support for the use of environment variables to set both global and
+  per-sub-command flags
 
 #### Environment Variables
 
@@ -120,10 +125,10 @@ collisions for a given CLI.
 
 Help text is generated from:
 
-  - The description passed into [`cli.NewWithSubCmds`](https://godoc.org/github.com/turbinelabs/cli/#NewWithSubCmds)
-  - The `.Description`, `.Summary` and `.Usage` fields of each
-  [`command.Cmd`](https://godoc.org/github.com/turbinelabs/cli/command/#Cmd)
-  - The `.Usage` field of each [`flag.Flag`](https://golang.org/pkg/flag/#Flag)
+- The description passed into [`cli.NewWithSubCmds`](https://godoc.org/github.com/turbinelabs/cli/#NewWithSubCmds)
+- The `.Description`, `.Summary` and `.Usage` fields of each
+[`command.Cmd`](https://godoc.org/github.com/turbinelabs/cli/command/#Cmd)
+- The `.Usage` field of each [`flag.Flag`](https://golang.org/pkg/flag/#Flag)
 
 Since our target is Terminal windows, we chose to keep formatting fairly simple.
 
