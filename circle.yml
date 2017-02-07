@@ -1,0 +1,50 @@
+version: 2
+executorType: docker
+
+containerInfo:
+  - image: turbinelabs/build-common:0.9.19.3
+    cmd: ["/bin/bash"]
+
+stages:
+  build:
+    environment:
+      - PROJECT: cli
+      - TEST_RUNNER_OUTPUT: /tmp/test-results/testrunner
+
+    steps:
+      - type: checkout
+        path: $GOPATH/src/github.com/turbinelabs/$PROJECT
+
+      - type: shell
+        shell: /bin/bash
+        command: env | sort
+
+      - type: shell
+        shell: /bin/bash
+        name: install git credentials
+        command: |
+          if [ -n $GITHUB_TOKEN ]; then
+            git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          fi
+
+      - type: shell
+        shell: /bin/bash
+        name: install deps
+        command: |
+          go get github.com/turbinelabs/$PROJECT/...
+
+      - type: shell
+        shell: /bin/bash
+        name: install testrunner
+        command: |
+          go get github.com/turbinelabs/test/testrunner
+          go install github.com/turbinelabs/test/testrunner
+
+      - type: shell
+        shell: /bin/bash
+        name: run tests
+        command: |
+          go test -exec testrunner $(go list github.com/turbinelabs/$PROJECT/... | grep -v /vendor/)
+
+      - type: test-results-store
+        path: /tmp/test-results
