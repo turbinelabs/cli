@@ -14,7 +14,7 @@
 # turbinelabs/cli
 
 [![Apache 2.0](https://img.shields.io/hexpm/l/plug.svg)](LICENSE)
-[![GoDoc](https://https://godoc.org/github.com/turbinelabs/cli?status.svg)](https://https://godoc.org/github.com/turbinelabs/cli)
+[![GoDoc](https://godoc.org/github.com/turbinelabs/cli?status.svg)](https://godoc.org/github.com/turbinelabs/cli)
 [![CircleCI](https://circleci.com/gh/turbinelabs/cli.svg?style=shield)](https://circleci.com/gh/turbinelabs/cli)
 
 The `cli` package provides a simple library for creating command-line
