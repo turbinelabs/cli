@@ -16,6 +16,7 @@
 [![Apache 2.0](https://img.shields.io/hexpm/l/plug.svg)](LICENSE)
 [![GoDoc](https://godoc.org/github.com/turbinelabs/cli?status.svg)](https://godoc.org/github.com/turbinelabs/cli)
 [![CircleCI](https://circleci.com/gh/turbinelabs/cli.svg?style=shield)](https://circleci.com/gh/turbinelabs/cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/turbinelabs/cli)](https://goreportcard.com/report/github.com/turbinelabs/cli)
 
 The `cli` package provides a simple library for creating command-line
 applications with multiple sub-commands.
