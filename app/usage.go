@@ -172,28 +172,54 @@ func (u usageT) option(f *flag.Flag) string {
 	if typeName == "" {
 		eq = ""
 	}
+
+	_, isCustomValue := f.Value.(flag.Getter)
+	isString := typeName == "string"
+	if isCustomValue {
+		switch f.Value.(flag.Getter).Get().(type) {
+		case string, *string, []string:
+			isString = true
+		}
+	}
+
 	defValue := f.DefValue
 	if defValue != "" {
-		if typeName == "string" || strings.IndexFunc(defValue, notGraphic) != -1 {
+		if isString || strings.IndexFunc(defValue, notGraphic) != -1 {
 			defValue = fmt.Sprintf("%q", defValue)
 		}
-		defValue = u.cleanf(12, "(default: %s)", defValue)
+		defValue = fmt.Sprintf("default: %s", defValue)
 	}
+	validValues := ""
+	if cv, ok := f.Value.(tbnflag.ConstrainedValue); ok {
+		validValues = cv.ValidValuesDescription()
+		if validValues != "" {
+			validValues = fmt.Sprintf("valid values: %s", validValues)
+		}
+	}
+
 	result := ""
 	nameLen := len(prefix + f.Name + eq + typeName)
 	fullName := "    " + prefix + ul(f.Name) + eq + typeName
 	//     --name=type (default: x)
-	if nameLen < 7 {
+	if nameLen < 7 && validValues == "" {
 		result += fullName
 		if defValue != "" {
-			result += fmt.Sprintf("%s%s", strings.Repeat(" ", 8-nameLen), defValue[12:])
+			result += fmt.Sprintf(
+				"%s%s",
+				strings.Repeat(" ", 8-nameLen),
+				u.cleanf(12, "(%s)", defValue)[12:],
+			)
 		}
 	} else {
 		//     --longerName=type
 		//            (default: x)
+		//            (valid values: x, y, or z)
 		result += u.clean(4, fullName)
 		if defValue != "" {
-			result += defValue
+			result += u.cleanf(12, "(%s)", defValue)
+		}
+		if validValues != "" {
+			result += u.cleanf(12, "(%s)", validValues)
 		}
 	}
 	result += u.clean(12, usage)
@@ -216,7 +242,7 @@ func (u usageT) cmd(name, desc string) string {
 }
 
 func (u usageT) optionsText(prefix string, envKey string, flagsFromEnv map[string]string) string {
-	format := `%s can also be configured via upper-case, underscore-delimeted environment variables
+	format := `%s can also be configured via upper-case, underscore-delimited environment variables
 prefixed with "%s". For example, "--some-flag" becomes "%sSOME_FLAG". Command-line flags take
 precedence over environment variables.`
 

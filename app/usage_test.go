@@ -19,7 +19,6 @@ package app
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"os"
 	"testing"
 
@@ -44,8 +43,6 @@ func testFlagsFromEnv(scopes ...string) tbnflag.FromEnv {
 	os.Setenv(fe.Prefix()+"FOO", "bar")
 	os.Setenv(fe.Prefix()+"BAZ", "blegga")
 	fe.Fill()
-	fmt.Println(fe.Prefix())
-	fmt.Println(fe.Filled())
 	return fe
 }
 
@@ -102,7 +99,7 @@ func TestUsageGlobal(t *testing.T) {
             (default: "\t\n")
             rhymes with ducks
 
-    Global options can also be configured via upper-case, underscore-delimeted
+    Global options can also be configured via upper-case, underscore-delimited
     environment variables prefixed with "FOO_". For example, "--some-flag"
     becomes "FOO_SOME_FLAG". Command-line flags take precedence over environment
     variables.
@@ -195,7 +192,7 @@ Run "foo help <command>" for more details on a specific command.
     can also be
     configured via
     upper-case,
-    underscore-delimeted
+    underscore-delimited
     environment
     variables
     prefixed with
@@ -296,7 +293,7 @@ and pay special attention to this pseudo-code:
             (default: "\t\n")
             rhymes with ducks
 
-    Global options can also be configured via upper-case, underscore-delimeted
+    Global options can also be configured via upper-case, underscore-delimited
     environment variables prefixed with "FOO_". For example, "--some-flag"
     becomes "FOO_SOME_FLAG". Command-line flags take precedence over environment
     variables.
@@ -328,7 +325,7 @@ and pay special attention to this pseudo-code:
             (default: "\t\n")
             rhymes with ducks
 
-    Options can also be configured via upper-case, underscore-delimeted
+    Options can also be configured via upper-case, underscore-delimited
     environment variables prefixed with "FOO_FOO_". For example, "--some-flag"
     becomes "FOO_FOO_SOME_FLAG". Command-line flags take precedence over
     environment variables.
@@ -389,7 +386,7 @@ and pay special attention to this pseudo-code:
             (default: "\t\n")
             rhymes with ducks
 
-    Options can also be configured via upper-case, underscore-delimeted
+    Options can also be configured via upper-case, underscore-delimited
     environment variables prefixed with "BAR_". For example, "--some-flag"
     becomes "BAR_SOME_FLAG". Command-line flags take precedence over environment
     variables.
@@ -483,7 +480,7 @@ and pay special attention to this pseudo-code:
     Options can also
     be configured
     via upper-case,
-    underscore-delimeted
+    underscore-delimited
     environment
     variables
     prefixed with
@@ -505,6 +502,114 @@ and pay special attention to this pseudo-code:
 
         BAR_BAZ=blegga
         BAR_FOO=bar
+
+`)
+}
+
+func TestUsageGlobalChoiceAndStrings(t *testing.T) {
+	cmds := []*command.Cmd{
+		{Name: "foo", Summary: "foo the thing"},
+		{Name: "baz", Summary: "baz the thing"},
+	}
+
+	buf := new(bytes.Buffer)
+	usage := newUsage(subCmdApp, buf, 84, true)
+
+	flags := &flag.FlagSet{}
+	choice := tbnflag.NewChoice("this-value", "that-value", "another-value")
+	choiceWithDefault :=
+		tbnflag.NewChoice("this-value", "that-value", "another-value").
+			WithDefault("this-value")
+	strings := tbnflag.NewStrings()
+	stringsWithDefault := tbnflag.NewStrings()
+	stringsWithDefault.ResetDefault("abc,def")
+
+	stringsWithConstraint :=
+		tbnflag.NewStringsWithConstraint("one-value", "two-value", "three-value-ha-ha-ha")
+	stringsWithConstraintAndDefault :=
+		tbnflag.NewStringsWithConstraint("one-value", "two-value", "three-value-ha-ha-ha")
+	stringsWithConstraintAndDefault.ResetDefault("one-value")
+
+	flags.Var(
+		&choice,
+		"choice",
+		"Pick any one `flag`.",
+	)
+	flags.Var(
+		&choiceWithDefault,
+		"choice-defaulted",
+		"Pick any one `flag`.",
+	)
+	flags.Var(
+		&strings,
+		"strings",
+		"Set as many of `anything` as you like.",
+	)
+	flags.Var(
+		&stringsWithDefault,
+		"strings-defaulted",
+		"Set as many of `anything` as you like.",
+	)
+	flags.Var(
+		&stringsWithConstraint,
+		"strings-constrained",
+		"Set as many of the `things` as you like.",
+	)
+	flags.Var(
+		&stringsWithConstraintAndDefault,
+		"strings-constrained-and-defaulted",
+		"Set as many of the `things` as you like.",
+	)
+
+	fe := tbnflag.NewFromEnv(flags, subCmdApp.Name)
+	usage.Global(cmds, fe)
+
+	assert.Equal(t, buf.String(), bold("NAME")+`
+    foo - maybe foo, maybe bar
+
+`+bold("USAGE")+`
+    foo [GLOBAL OPTIONS] <command> [COMMAND OPTIONS] [arguments...]
+
+`+bold("VERSION")+`
+    1.0
+
+`+bold("COMMANDS")+`
+    `+ul("foo")+`     foo the thing
+
+    `+ul("baz")+`     baz the thing
+
+`+bold("GLOBAL OPTIONS")+`
+    --`+ul("choice")+`=flag
+            (valid values: "this-value", "that-value", or "another-value")
+            Pick any one flag.
+
+    --`+ul("choice-defaulted")+`=flag
+            (default: "this-value")
+            (valid values: "this-value", "that-value", or "another-value")
+            Pick any one flag.
+
+    --`+ul("strings")+`=anything
+            Set as many of anything as you like.
+
+    --`+ul("strings-constrained")+`=things
+            (valid values: "one-value", "two-value", or "three-value-ha-ha-ha")
+            Set as many of the things as you like.
+
+    --`+ul("strings-constrained-and-defaulted")+`=things
+            (default: "one-value")
+            (valid values: "one-value", "two-value", or "three-value-ha-ha-ha")
+            Set as many of the things as you like.
+
+    --`+ul("strings-defaulted")+`=anything
+            (default: "abc,def")
+            Set as many of anything as you like.
+
+    Global options can also be configured via upper-case, underscore-delimited
+    environment variables prefixed with "FOO_". For example, "--some-flag"
+    becomes "FOO_SOME_FLAG". Command-line flags take precedence over environment
+    variables.
+
+Run "foo help <command>" for more details on a specific command.
 
 `)
 }
