@@ -1,50 +1,35 @@
 version: 2
-executorType: docker
-
-containerInfo:
-  - image: turbinelabs/build-common:0.9.19.5
-    cmd: ["/bin/bash"]
-
-stages:
+jobs:
   build:
+    docker:
+      - image: turbinelabs/build-common:0.9.19.5
+        cmd: ["/bin/bash"]
+
+    working_directory: "~/"
+
     environment:
       - PROJECT: cli
       - TEST_RUNNER_OUTPUT: /tmp/test-results/testrunner
 
     steps:
-      - type: checkout
-        path: $GOPATH/src/github.com/turbinelabs/$PROJECT
+      - checkout:
+          path: $GOPATH/src/github.com/turbinelabs/$PROJECT
 
-      - type: shell
-        shell: /bin/bash
-        command: env | sort
+      - run: env | sort
 
-      - type: shell
-        shell: /bin/bash
-        name: install git credentials
-        command: |
-          if [ -n $GITHUB_TOKEN ]; then
-            git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
-          fi
+      - run:
+          name: install deps
+          command: go get github.com/turbinelabs/$PROJECT/...
 
-      - type: shell
-        shell: /bin/bash
-        name: install deps
-        command: |
-          go get github.com/turbinelabs/$PROJECT/...
+      - run:
+          name: install testrunner
+          command: |
+            go get github.com/turbinelabs/test/testrunner
+            go install github.com/turbinelabs/test/testrunner
 
-      - type: shell
-        shell: /bin/bash
-        name: install testrunner
-        command: |
-          go get github.com/turbinelabs/test/testrunner
-          go install github.com/turbinelabs/test/testrunner
+      - run:
+          name: run tests
+          command: go test -exec testrunner github.com/turbinelabs/$PROJECT/...
 
-      - type: shell
-        shell: /bin/bash
-        name: run tests
-        command: |
-          go test -exec testrunner $(go list github.com/turbinelabs/$PROJECT/... | grep -v /vendor/)
-
-      - type: test-results-store
-        path: /tmp/test-results
+      - store_test_results:
+          path: /tmp/test-results
