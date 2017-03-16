@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: turbinelabs/build-common:0.9.19.5
+      - image: turbinelabs/build-common:0.9.19.6
         cmd: ["/bin/bash"]
 
     working_directory: "~/"
