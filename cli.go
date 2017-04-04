@@ -29,6 +29,8 @@ import (
 	"github.com/turbinelabs/cli/app"
 	"github.com/turbinelabs/cli/command"
 	tbnflag "github.com/turbinelabs/nonstdlib/flag"
+	"github.com/turbinelabs/nonstdlib/flag/usage"
+	"github.com/turbinelabs/nonstdlib/log/console"
 	tbnos "github.com/turbinelabs/nonstdlib/os"
 )
 
@@ -289,6 +291,8 @@ func (cli *cli) mainOrCmdErr() command.CmdErr {
 		return command.NoError()
 	}
 
+	checkDeprecated(&cli.flags, "global ")
+
 	missingErrs := checkRequired(&cli.flags, []string{}, "global ")
 
 	if len(args) < 1 {
@@ -374,6 +378,8 @@ func (cli *cli) cmdOrCmdErr(cmd *command.Cmd, args []string, missingErrs []strin
 		return command.NoError()
 	}
 
+	checkDeprecated(&cmd.Flags, "")
+
 	missingErrs = checkRequired(&cmd.Flags, missingErrs, "")
 	if len(missingErrs) > 0 {
 		return cmd.BadInputf("\n  %s", strings.Join(missingErrs, "\n  "))
@@ -442,13 +448,16 @@ func (cli *cli) stderr(msg string) {
 }
 
 func checkRequired(fs *flag.FlagSet, errStrs []string, prefix string) []string {
-	missing := tbnflag.MissingRequired(fs)
-	if len(missing) != 0 {
-		for _, name := range missing {
-			errStrs = append(errStrs, fmt.Sprintf("--%s is a required %sflag", name, prefix))
-		}
+	for _, name := range usage.MissingRequired(fs) {
+		errStrs = append(errStrs, fmt.Sprintf("--%s is a required %sflag", name, prefix))
 	}
 	return errStrs
+}
+
+func checkDeprecated(fs *flag.FlagSet, prefix string) {
+	for _, name := range usage.DeprecatedAndSet(fs) {
+		console.Error().Printf("%sflag --%s is deprecated", prefix, name)
+	}
 }
 
 func quietParse(fs *flag.FlagSet, args []string) error {

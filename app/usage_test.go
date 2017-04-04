@@ -24,15 +24,16 @@ import (
 
 	"github.com/turbinelabs/cli/command"
 	tbnflag "github.com/turbinelabs/nonstdlib/flag"
+	"github.com/turbinelabs/nonstdlib/flag/usage"
 	"github.com/turbinelabs/test/assert"
 )
 
 func testFlags() *flag.FlagSet {
 	var flags flag.FlagSet
-	flags.Bool("foo", false, "do the foo")
+	flags.Bool("foo", false, usage.Required("do the foo"))
 	flags.Int("bar", 3, "the `quantity` of bars you want")
 	flags.Float64("blegga", 0.1, "on the spectrum of `fondue`, where do you fall?")
-	flags.String("baz", "", "do you want baz with that?")
+	flags.String("baz", "", usage.Sensitive("do you want baz with that?"))
 	flags.String("qux", "\t\n", "rhymes with `ducks`")
 	flags.String("fnord", "", "rhymes with `fjord`")
 	return &flags
@@ -83,7 +84,7 @@ func TestUsageGlobal(t *testing.T) {
             the quantity of bars you want
 
     --`+ul("baz")+`=string
-            do you want baz with that?
+            [SENSITIVE] do you want baz with that?
 
     --`+ul("blegga")+`=fondue
             (default: 0.1)
@@ -93,7 +94,7 @@ func TestUsageGlobal(t *testing.T) {
             rhymes with fjord
 
     --`+ul("foo")+`   (default: false)
-            do the foo
+            [REQUIRED] do the foo
 
     --`+ul("qux")+`=ducks
             (default: "\t\n")
@@ -106,7 +107,7 @@ func TestUsageGlobal(t *testing.T) {
 
     Options currently configured from the Environment:
 
-        FOO_BAZ=blegga
+        FOO_BAZ=<redacted>
         FOO_FOO=bar
 
 Run "foo help <command>" for more details on a specific command.
@@ -155,6 +156,7 @@ Run "foo help <command>" for more details on a specific command.
             you want
 
     --`+ul("baz")+`=string
+            [SENSITIVE]
             do you
             want baz
             with
@@ -178,6 +180,7 @@ Run "foo help <command>" for more details on a specific command.
 
     --`+ul("foo")+`   (default:
             false)
+            [REQUIRED]
             do the
             foo
 
@@ -212,7 +215,7 @@ Run "foo help <command>" for more details on a specific command.
     configured from
     the Environment:
 
-        FOO_BAZ=blegga
+        FOO_BAZ=<redacted>
         FOO_FOO=bar
 
 Run "foo help
@@ -277,7 +280,7 @@ and pay special attention to this pseudo-code:
             the quantity of bars you want
 
     --`+ul("baz")+`=string
-            do you want baz with that?
+            [SENSITIVE] do you want baz with that?
 
     --`+ul("blegga")+`=fondue
             (default: 0.1)
@@ -287,7 +290,7 @@ and pay special attention to this pseudo-code:
             rhymes with fjord
 
     --`+ul("foo")+`   (default: false)
-            do the foo
+            [REQUIRED] do the foo
 
     --`+ul("qux")+`=ducks
             (default: "\t\n")
@@ -300,7 +303,7 @@ and pay special attention to this pseudo-code:
 
     Options currently configured from the Environment:
 
-        FOO_BAZ=blegga
+        FOO_BAZ=<redacted>
         FOO_FOO=bar
 
 `+bold("OPTIONS")+`
@@ -309,7 +312,7 @@ and pay special attention to this pseudo-code:
             the quantity of bars you want
 
     --`+ul("baz")+`=string
-            do you want baz with that?
+            [SENSITIVE] do you want baz with that?
 
     --`+ul("blegga")+`=fondue
             (default: 0.1)
@@ -319,7 +322,7 @@ and pay special attention to this pseudo-code:
             rhymes with fjord
 
     --`+ul("foo")+`   (default: false)
-            do the foo
+            [REQUIRED] do the foo
 
     --`+ul("qux")+`=ducks
             (default: "\t\n")
@@ -332,7 +335,7 @@ and pay special attention to this pseudo-code:
 
     Options currently configured from the Environment:
 
-        FOO_FOO_BAZ=blegga
+        FOO_FOO_BAZ=<redacted>
         FOO_FOO_FOO=bar
 
 `)
@@ -370,7 +373,7 @@ and pay special attention to this pseudo-code:
             the quantity of bars you want
 
     --`+ul("baz")+`=string
-            do you want baz with that?
+            [SENSITIVE] do you want baz with that?
 
     --`+ul("blegga")+`=fondue
             (default: 0.1)
@@ -380,7 +383,7 @@ and pay special attention to this pseudo-code:
             rhymes with fjord
 
     --`+ul("foo")+`   (default: false)
-            do the foo
+            [REQUIRED] do the foo
 
     --`+ul("qux")+`=ducks
             (default: "\t\n")
@@ -393,7 +396,7 @@ and pay special attention to this pseudo-code:
 
     Options currently configured from the Environment:
 
-        BAR_BAZ=blegga
+        BAR_BAZ=<redacted>
         BAR_FOO=bar
 
 `)
@@ -444,6 +447,7 @@ and pay special attention to this pseudo-code:
             you want
 
     --`+ul("baz")+`=string
+            [SENSITIVE]
             do you
             want baz
             with
@@ -467,6 +471,7 @@ and pay special attention to this pseudo-code:
 
     --`+ul("foo")+`   (default:
             false)
+            [REQUIRED]
             do the
             foo
 
@@ -500,7 +505,7 @@ and pay special attention to this pseudo-code:
     configured from
     the Environment:
 
-        BAR_BAZ=blegga
+        BAR_BAZ=<redacted>
         BAR_FOO=bar
 
 `)

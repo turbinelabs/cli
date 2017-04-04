@@ -37,6 +37,7 @@ import (
 
 	"github.com/turbinelabs/cli/command"
 	tbnflag "github.com/turbinelabs/nonstdlib/flag"
+	"github.com/turbinelabs/nonstdlib/flag/usage"
 )
 
 const widthFromTerm = -1
@@ -159,7 +160,11 @@ func (u usageT) clean(indent int, s string) string {
 
 // print a flag, including defaults
 func (u usageT) option(f *flag.Flag) string {
-	typeName, usage := flag.UnquoteUsage(f)
+	fCopy := *f
+	usg := usage.New(f.Usage)
+	fCopy.Usage = usg.Pretty()
+
+	typeName, usage := flag.UnquoteUsage(&fCopy)
 	if f.Name == "h" || f.Name == "v" {
 		return ""
 	}
@@ -236,9 +241,9 @@ func (u usageT) cmd(name, desc string) string {
 			strings.Repeat(" ", 8-len(name)),
 			cleanDesc,
 		)
-	} else {
-		return fmt.Sprintf("    %s\n%s", ul(name), cleanDesc)
 	}
+	return fmt.Sprintf("    %s\n%s", ul(name), cleanDesc)
+
 }
 
 func (u usageT) optionsText(prefix string, envKey string, flagsFromEnv map[string]string) string {

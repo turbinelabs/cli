@@ -28,29 +28,10 @@ import (
 	"github.com/turbinelabs/cli/app"
 	"github.com/turbinelabs/cli/command"
 	tbnflag "github.com/turbinelabs/nonstdlib/flag"
+	"github.com/turbinelabs/nonstdlib/flag/usage"
 	tbnos "github.com/turbinelabs/nonstdlib/os"
 	"github.com/turbinelabs/test/assert"
 )
-
-// func TestCmdRunRequiredMissing(t *testing.T) {
-// 	var fs flag.FlagSet
-// 	fs.String("bleh", "", tbnflag.Required("bleh"))
-// 	fs.Parse([]string{"foo"})
-
-// 	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
-// 	err := cmd.Run()
-// 	assert.Equal(t, err, CmdErr{&cmd, CmdErrCodeBadInput, "bar: \n\n  bleh is required"})
-// }
-
-// func TestCmdRunRequiredProvided(t *testing.T) {
-// 	var fs flag.FlagSet
-// 	fs.String("bleh", "", tbnflag.Required("bleh"))
-// 	fs.Parse([]string{"--bleh=blar", "foo"})
-
-// 	cmd := Cmd{Name: "bar", Flags: fs, Runner: testRunner{"bar", []string{"foo"}, t}}
-// 	err := cmd.Run()
-// 	assert.Equal(t, err, CmdErr{&cmd, CmdErrCodeError, "bar: baz"})
-// }
 
 func TestValidate(t *testing.T) {
 	barCmd := &command.Cmd{Name: "bar"}
@@ -172,8 +153,8 @@ func TestCLI(t *testing.T) {
 	for _, tc := range []struct {
 		args               [][]string
 		cmdType            cmdType
-		cliBarFlagValue    bool
-		cmdBarFlagValue    bool
+		cliBarFlagValue    string
+		cmdBarFlagValue    string
 		fillFlagsCalled    bool
 		cmdFillFlagsCalled bool
 		usageCmdCalled     bool
@@ -222,18 +203,18 @@ func TestCLI(t *testing.T) {
 		},
 		// cmd success
 		{
-			args:               [][]string{{"-bar", "baz"}},
+			args:               [][]string{{"-bar", "a", "baz"}},
 			cmdType:            singleCmd,
-			cmdBarFlagValue:    true,
+			cmdBarFlagValue:    "a",
 			cmdFillFlagsCalled: true,
 			runnerCalled:       true,
 			errCode:            command.CmdErrCodeNoError,
 		},
 		// cmd err
 		{
-			args:               [][]string{{"-bar", "baz"}},
+			args:               [][]string{{"-bar", "a", "baz"}},
 			cmdType:            singleCmd,
-			cmdBarFlagValue:    true,
+			cmdBarFlagValue:    "a",
 			cmdFillFlagsCalled: true,
 			runnerCalled:       true,
 			errCode:            command.CmdErrCodeError,
@@ -347,10 +328,10 @@ func TestCLI(t *testing.T) {
 		},
 		// command success
 		{
-			args:               [][]string{{"-bar", "foo", "-bar", "baz"}},
+			args:               [][]string{{"-bar", "a", "foo", "-bar", "b", "baz"}},
 			cmdType:            multipleCmds,
-			cliBarFlagValue:    true,
-			cmdBarFlagValue:    true,
+			cliBarFlagValue:    "a",
+			cmdBarFlagValue:    "b",
 			fillFlagsCalled:    true,
 			cmdFillFlagsCalled: true,
 			runnerCalled:       true,
@@ -358,10 +339,10 @@ func TestCLI(t *testing.T) {
 		},
 		// command err
 		{
-			args:               [][]string{{"-bar", "foo", "-bar", "baz"}},
+			args:               [][]string{{"-bar", "a", "foo", "-bar", "b", "baz"}},
 			cmdType:            multipleCmds,
-			cliBarFlagValue:    true,
-			cmdBarFlagValue:    true,
+			cliBarFlagValue:    "a",
+			cmdBarFlagValue:    "b",
 			cmdFillFlagsCalled: true,
 			fillFlagsCalled:    true,
 			runnerCalled:       true,
@@ -383,13 +364,13 @@ func TestCLI(t *testing.T) {
 					c, mocks := newCLIAndMocks(g, tc.cmdType)
 					defer mocks.finish()
 
-					cmdBarFlag := false
-					cliBarFlag := false
+					var cmdBarFlag, cliBarFlag string
 
 					fooCmd := c.command("foo")
 
-					c.flags.BoolVar(&cliBarFlag, "bar", false, tbnflag.Required(""))
-					fooCmd.Flags.BoolVar(&cmdBarFlag, "bar", false, tbnflag.Required(""))
+					u := usage.New("").SetRequired().SetSensitive().String()
+					c.flags.StringVar(&cliBarFlag, "bar", "", u)
+					fooCmd.Flags.StringVar(&cmdBarFlag, "bar", "", u)
 
 					mocks.os.EXPECT().Args().Return(append([]string{c.name}, args...))
 
