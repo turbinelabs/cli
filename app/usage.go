@@ -192,8 +192,9 @@ func (u usageT) option(f *flag.Flag) string {
 		if isString || strings.IndexFunc(defValue, notGraphic) != -1 {
 			defValue = fmt.Sprintf("%q", defValue)
 		}
-		defValue = fmt.Sprintf("default: %s", defValue)
+		defValue = fmt.Sprintf(`default: {{ %q }}`, defValue)
 	}
+
 	validValues := ""
 	if cv, ok := f.Value.(tbnflag.ConstrainedValue); ok {
 		validValues = cv.ValidValuesDescription()
