@@ -77,8 +77,8 @@ func TestValidateHelpText(t *testing.T) {
 type cmdType string
 
 const (
-	singleCmd    cmdType = "single"
-	multipleCmds         = "multiple"
+	noSubCmd     cmdType = "no-sub-cmd"
+	multipleCmds         = "multiple-cmds"
 )
 
 type cliTestMocks struct {
@@ -137,8 +137,11 @@ func newCLIAndMocks(t testing.TB, cType cmdType) (*cli, *cliTestMocks) {
 	cli := &cli{
 		commands: cmds,
 		name:     "blar",
-		usage:    mocks.usage,
-		version:  mocks.version,
+		app: app.App{
+			HasSubCmds: cType != noSubCmd,
+		},
+		usage:   mocks.usage,
+		version: mocks.version,
 
 		flagsFromEnv:    mocks.flagsFromEnv,
 		cmdFlagsFromEnv: fromEnvMap,
@@ -166,12 +169,12 @@ func TestCLI(t *testing.T) {
 		err                string
 	}{
 		//
-		// SINGLE COMMAND TESTS
+		// NO SUB COMMAND TESTS
 		//
 		// bad argument tests
 		{
 			args:           [][]string{{"-bogus"}},
-			cmdType:        singleCmd,
+			cmdType:        noSubCmd,
 			usageCmdCalled: true,
 			errCode:        command.CmdErrCodeBadInput,
 			err:            "foo: flag provided but not defined: -bogus\n\n",
@@ -179,7 +182,7 @@ func TestCLI(t *testing.T) {
 		// required arg test
 		{
 			args:               [][]string{{"baz"}},
-			cmdType:            singleCmd,
+			cmdType:            noSubCmd,
 			cmdFillFlagsCalled: true,
 			usageCmdCalled:     true,
 			errCode:            command.CmdErrCodeBadInput,
@@ -188,7 +191,7 @@ func TestCLI(t *testing.T) {
 		// -help tests
 		{
 			args:               [][]string{{"-help"}, {"-h"}},
-			cmdType:            singleCmd,
+			cmdType:            noSubCmd,
 			cmdFillFlagsCalled: true,
 			usageCmdCalled:     true,
 			errCode:            command.CmdErrCodeNoError,
@@ -196,7 +199,7 @@ func TestCLI(t *testing.T) {
 		// -version tests
 		{
 			args:               [][]string{{"-version"}, {"-v"}},
-			cmdType:            singleCmd,
+			cmdType:            noSubCmd,
 			cmdFillFlagsCalled: true,
 			versionCalled:      true,
 			errCode:            command.CmdErrCodeNoError,
@@ -204,7 +207,7 @@ func TestCLI(t *testing.T) {
 		// cmd success
 		{
 			args:               [][]string{{"-bar", "a", "baz"}},
-			cmdType:            singleCmd,
+			cmdType:            noSubCmd,
 			cmdBarFlagValue:    "a",
 			cmdFillFlagsCalled: true,
 			runnerCalled:       true,
@@ -213,7 +216,7 @@ func TestCLI(t *testing.T) {
 		// cmd err
 		{
 			args:               [][]string{{"-bar", "a", "baz"}},
-			cmdType:            singleCmd,
+			cmdType:            noSubCmd,
 			cmdBarFlagValue:    "a",
 			cmdFillFlagsCalled: true,
 			runnerCalled:       true,
@@ -221,6 +224,7 @@ func TestCLI(t *testing.T) {
 			cmdErrMessage:      "Gah!",
 			err:                "foo: Gah!\n\n",
 		},
+
 		//
 		// MULTIPLE COMMAND TESTS
 		//

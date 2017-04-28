@@ -102,7 +102,6 @@ func NewWithSubCmds(
 	description string,
 	version string,
 	command1 *command.Cmd,
-	command2 *command.Cmd,
 	commandsN ...*command.Cmd,
 ) CLI {
 	app := app.App{
@@ -111,10 +110,7 @@ func NewWithSubCmds(
 		VersionString: version,
 		HasSubCmds:    true,
 	}
-	commands := []*command.Cmd{command1}
-	commands = append(commands, command2)
-	commands = append(commands, commandsN...)
-	return mkNew(app, commands...)
+	return mkNew(app, append([]*command.Cmd{command1}, commandsN...)...)
 }
 
 func mkNew(app app.App, commands ...*command.Cmd) CLI {
@@ -130,14 +126,14 @@ func mkNew(app app.App, commands ...*command.Cmd) CLI {
 
 	c.flagsFromEnv = tbnflag.NewFromEnv(&c.flags, app.Name)
 
-	if len(commands) == 1 {
-		c.cmdFlagsFromEnv = map[string]tbnflag.FromEnv{
-			app.Name: tbnflag.NewFromEnv(&commands[0].Flags, app.Name),
-		}
-	} else {
+	if app.HasSubCmds {
 		c.cmdFlagsFromEnv = map[string]tbnflag.FromEnv{}
 		for _, cmd := range commands {
 			c.cmdFlagsFromEnv[cmd.Name] = tbnflag.NewFromEnv(&cmd.Flags, app.Name, cmd.Name)
+		}
+	} else {
+		c.cmdFlagsFromEnv = map[string]tbnflag.FromEnv{
+			app.Name: tbnflag.NewFromEnv(&commands[0].Flags, app.Name),
 		}
 	}
 
@@ -273,8 +269,9 @@ func (cli *cli) SetFlags(fs *flag.FlagSet) {
 }
 
 func (cli *cli) mainOrCmdErr() command.CmdErr {
-	// if we have a single command, it is implicitly the first argument
-	if len(cli.commands) == 1 {
+	// if we have no sub cmds (e.g. a single anonymous command),
+	// it is implicitly the first argument
+	if !cli.app.HasSubCmds {
 		return cli.cmdOrCmdErr(cli.commands[0], cli.os.Args(), []string{})
 	}
 
@@ -436,11 +433,10 @@ func (cli *cli) commandUsage(cmd *command.Cmd) {
 }
 
 func (cli *cli) commandFlagsFromEnv(cmd *command.Cmd) tbnflag.FromEnv {
-	if len(cli.commands) == 1 {
-		return cli.cmdFlagsFromEnv[cli.name]
-	} else {
+	if cli.app.HasSubCmds {
 		return cli.cmdFlagsFromEnv[cmd.Name]
 	}
+	return cli.cmdFlagsFromEnv[cli.name]
 }
 
 func (cli *cli) stderr(msg string) {
