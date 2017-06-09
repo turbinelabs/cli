@@ -5,21 +5,21 @@ jobs:
       - image: turbinelabs/build-common:0.9.19.7
         cmd: ["/bin/bash"]
 
-    working_directory: "~/"
+    working_directory: "/go/src/github.com/turbinelabs/cli"
 
     environment:
-      - PROJECT: cli
+      - PROJECT: github.com/turbinelabs/cli
       - TEST_RUNNER_OUTPUT: /tmp/test-results/testrunner
+      - TBN_CI_BUILD: 1
 
     steps:
-      - checkout:
-          path: $GOPATH/src/github.com/turbinelabs/$PROJECT
+      - checkout
 
       - run: env | sort
 
       - run:
           name: install deps
-          command: go get github.com/turbinelabs/$PROJECT/...
+          command: go get $PROJECT/...
 
       - run:
           name: install testrunner
@@ -29,7 +29,9 @@ jobs:
 
       - run:
           name: run tests
-          command: go test -exec testrunner github.com/turbinelabs/$PROJECT/...
+          command: bash code_coverage.sh $(go list $PROJECT/... | grep -v /vendor/)
+
+      - run: bash <(curl -s https://codecov.io/bash)
 
       - store_test_results:
           path: /tmp/test-results
