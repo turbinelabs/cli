@@ -45,8 +45,6 @@ if [ -z "$TBN_COVERAGE_UPLOAD" ]; then
   exit 0
 fi
 
-echo "TBN_COVERAGE_UPLOAD = $TBN_COVERAGE_UPLOAD"
-
 if curl --silent --fail https://codecov.io/bash >codecov.sh; then
   bash <codecov.sh
 else
