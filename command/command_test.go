@@ -49,6 +49,7 @@ func TestCmdBadInputf(t *testing.T) {
 	want := CmdErr{&cmd, CmdErrCodeBadInput, "bar: 1-2-3"}
 	got := cmd.BadInputf("%d-%d-%d", 1, 2, 3)
 	assert.Equal(t, got, want)
+	assert.True(t, got.IsError())
 }
 
 func TestCmdErrorf(t *testing.T) {
@@ -56,6 +57,7 @@ func TestCmdErrorf(t *testing.T) {
 	want := CmdErr{&cmd, CmdErrCodeError, "bar: 1-2-3"}
 	got := cmd.Errorf("%d-%d-%d", 1, 2, 3)
 	assert.Equal(t, got, want)
+	assert.True(t, got.IsError())
 }
 
 func TestCmdBadInput(t *testing.T) {
@@ -63,6 +65,7 @@ func TestCmdBadInput(t *testing.T) {
 	want := CmdErr{&cmd, CmdErrCodeBadInput, "bar: baz:1 2 3"}
 	got := cmd.BadInput("baz:", 1, 2, 3)
 	assert.Equal(t, got, want)
+	assert.True(t, got.IsError())
 }
 
 func TestCmdError(t *testing.T) {
@@ -70,40 +73,12 @@ func TestCmdError(t *testing.T) {
 	want := CmdErr{&cmd, CmdErrCodeError, "bar: baz:1 2 3"}
 	got := cmd.Error("baz:", 1, 2, 3)
 	assert.Equal(t, got, want)
-}
-
-func TestIsError(t *testing.T) {
-	assert.True(t, BadInput("").IsError())
-	assert.True(t, Error("").IsError())
-	assert.False(t, NoError().IsError())
-}
-
-func TestBadInputf(t *testing.T) {
-	want := CmdErr{nil, CmdErrCodeBadInput, "1-2-3"}
-	got := BadInputf("%d-%d-%d", 1, 2, 3)
-	assert.Equal(t, got, want)
-}
-
-func TestErrorf(t *testing.T) {
-	want := CmdErr{nil, CmdErrCodeError, "1-2-3"}
-	got := Errorf("%d-%d-%d", 1, 2, 3)
-	assert.Equal(t, got, want)
-}
-
-func TestBadInput(t *testing.T) {
-	want := CmdErr{nil, CmdErrCodeBadInput, "baz:1 2 3"}
-	got := BadInput("baz:", 1, 2, 3)
-	assert.Equal(t, got, want)
-}
-
-func TestError(t *testing.T) {
-	want := CmdErr{nil, CmdErrCodeError, "baz:1 2 3"}
-	got := Error("baz:", 1, 2, 3)
-	assert.Equal(t, got, want)
+	assert.True(t, got.IsError())
 }
 
 func TestNoError(t *testing.T) {
 	want := CmdErr{nil, CmdErrCodeNoError, ""}
 	got := NoError()
 	assert.Equal(t, got, want)
+	assert.False(t, NoError().IsError())
 }

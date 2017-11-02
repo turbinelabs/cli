@@ -277,7 +277,7 @@ func (cli *cli) mainOrCmdErr() command.CmdErr {
 
 	args, err := cli.parseGlobalFlags()
 	if err != nil {
-		return command.BadInput(err)
+		return mkBadInput(err)
 	}
 
 	if cli.versionFlag {
@@ -302,7 +302,7 @@ func (cli *cli) mainOrCmdErr() command.CmdErr {
 		}
 
 		errs := append([]string{"no command specified"}, missingErrs...)
-		return command.BadInput(strings.Join(errs, "\n"))
+		return mkBadInput(strings.Join(errs, "\n"))
 	}
 
 	// determine which Cmd should be run, parse args
@@ -412,7 +412,7 @@ func (cli *cli) handleBadCmd(args []string, validationErrs []string) command.Cmd
 	}
 
 	errs := append([]string{fmt.Sprintf("unknown command: %q", args[0])}, validationErrs...)
-	return command.BadInput(strings.Join(errs, "\n"))
+	return mkBadInput(strings.Join(errs, "\n"))
 }
 
 func (cli *cli) command(name string) *command.Cmd {
@@ -476,5 +476,13 @@ func addHelpFlagIfMissing(fs *flag.FlagSet, flag *bool) {
 	}
 	if fs.Lookup("h") == nil {
 		fs.BoolVar(flag, "h", false, HelpSummary)
+	}
+}
+
+func mkBadInput(args ...interface{}) command.CmdErr {
+	return command.CmdErr{
+		Cmd:     nil,
+		Code:    command.CmdErrCodeBadInput,
+		Message: fmt.Sprint(args...),
 	}
 }
