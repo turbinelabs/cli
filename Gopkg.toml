@@ -1,0 +1,9 @@
+ignored = [
+  "github.com/turbinelabs/nonstdlib*",
+  "github.com/turbinelabs/test*",
+  "github.com/golang/mock/*"
+]
+
+[[constraint]]
+  name = "github.com/mattn/go-isatty"
+  revision = "57fdcb988a5c543893cc61bce354a6e24ab70022"
