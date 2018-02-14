@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: turbinelabs/build-common:0.9.22.1
+      - image: turbinelabs/build-common:0.9.22.2
         cmd: ["/bin/bash"]
 
     working_directory: "/go/src/github.com/turbinelabs/cli"
