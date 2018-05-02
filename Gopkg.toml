@@ -1,8 +1,12 @@
 ignored = [
   "github.com/turbinelabs/nonstdlib*",
   "github.com/turbinelabs/test*",
-  "github.com/golang/mock/*"
+  "github.com/golang/mock/*",
 ]
+
+[prune]
+  go-tests = true
+  unused-packages = true
 
 [[constraint]]
   name = "github.com/mattn/go-isatty"
