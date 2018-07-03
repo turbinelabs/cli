@@ -323,7 +323,9 @@ func (cli *cli) parseGlobalFlags() ([]string, error) {
 	}
 
 	// fill unset flags from env
-	cli.flagsFromEnv.Fill()
+	if err := cli.flagsFromEnv.Fill(); err != nil {
+		return nil, err
+	}
 	args := cli.flags.Args()
 
 	// treat help as -help
@@ -356,7 +358,9 @@ func (cli *cli) cmdOrCmdErr(cmd *command.Cmd, args []string, missingErrs []strin
 	}
 
 	// fill unset flags from env
-	cli.commandFlagsFromEnv(cmd).Fill()
+	if err := cli.commandFlagsFromEnv(cmd).Fill(); err != nil {
+		return cmd.BadInput(err)
+	}
 
 	// <app> <command> -help
 	// <app> <command> -h

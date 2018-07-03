@@ -159,7 +159,9 @@ func TestCLI(t *testing.T) {
 		cliBarFlagValue    string
 		cmdBarFlagValue    string
 		fillFlagsCalled    bool
+		fillFlagsErr       error
 		cmdFillFlagsCalled bool
+		cmdFillFlagsErr    error
 		usageCmdCalled     bool
 		usageGlobalCalled  bool
 		versionCalled      bool
@@ -187,6 +189,16 @@ func TestCLI(t *testing.T) {
 			usageCmdCalled:     true,
 			errCode:            command.CmdErrCodeBadInput,
 			err:                "foo: \n  --bar is a required flag\n\n",
+		},
+		// fill flags err
+		{
+			args:               [][]string{{"baz"}},
+			cmdType:            noSubCmd,
+			cmdFillFlagsCalled: true,
+			cmdFillFlagsErr:    errors.New("boom"),
+			usageCmdCalled:     true,
+			errCode:            command.CmdErrCodeBadInput,
+			err:                "foo: boom\n\n",
 		},
 		// -help tests
 		{
@@ -269,6 +281,27 @@ func TestCLI(t *testing.T) {
 			usageCmdCalled:     true,
 			errCode:            command.CmdErrCodeBadInput,
 			err:                "foo: \n  --bar is a required global flag\n  --bar is a required flag\n\n",
+		},
+		// fill flags err
+		{
+			args:              [][]string{{"foo", "baz"}},
+			cmdType:           multipleCmds,
+			fillFlagsCalled:   true,
+			fillFlagsErr:      errors.New("boom"),
+			usageGlobalCalled: true,
+			errCode:           command.CmdErrCodeBadInput,
+			err:               "boom\n\n",
+		},
+		// cmd fill flags err
+		{
+			args:               [][]string{{"foo", "baz"}},
+			cmdType:            multipleCmds,
+			cmdFillFlagsCalled: true,
+			cmdFillFlagsErr:    errors.New("boom"),
+			fillFlagsCalled:    true,
+			usageCmdCalled:     true,
+			errCode:            command.CmdErrCodeBadInput,
+			err:                "foo: boom\n\n",
 		},
 		// -help tests
 		{
@@ -379,11 +412,11 @@ func TestCLI(t *testing.T) {
 					mocks.os.EXPECT().Args().Return(append([]string{c.name}, args...))
 
 					if tc.fillFlagsCalled {
-						mocks.flagsFromEnv.EXPECT().Fill()
+						mocks.flagsFromEnv.EXPECT().Fill().Return(tc.fillFlagsErr)
 					}
 
 					if tc.cmdFillFlagsCalled {
-						mocks.cmdFooFlagsFromEnv.EXPECT().Fill()
+						mocks.cmdFooFlagsFromEnv.EXPECT().Fill().Return(tc.cmdFillFlagsErr)
 					}
 
 					if tc.usageCmdCalled {
